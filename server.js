@@ -7,7 +7,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-app.use(express.static(path.join(__dirname)));
+app.use((req,res,next)=>{ if(req.path.endsWith('.html')||req.path==='/'){ res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate'); res.setHeader('Pragma','no-cache'); res.setHeader('Expires','0'); } next(); });
+app.use(express.static(path.join(__dirname), { etag:false, lastModified:false, maxAge:0 }));
 
 const COLORS = ['red','yellow','green','blue'];
 const EMOJIS = ['😎','🦊','🐼','🐸','🐯','🐵','🐱'];
