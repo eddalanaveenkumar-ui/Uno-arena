@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: uno-arena-server
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+    healthCheckPath: /
