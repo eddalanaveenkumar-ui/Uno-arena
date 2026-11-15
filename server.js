@@ -344,6 +344,14 @@ function startGame(room){
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('UNO Arena server listening on', PORT);
-});
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('UNO Arena server listening on', PORT);
+  });
+}
+
+// Vercel serverless export
+module.exports = app;
+module.exports.app = app;
+module.exports.server = server;
+module.exports.io = io;
