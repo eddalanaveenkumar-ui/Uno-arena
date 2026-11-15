@@ -1,0 +1,9 @@
+{
+	"appId": "com.unoarena.app",
+	"appName": "UNO Arena",
+	"webDir": "www",
+	"server": {
+		"url": "https://uno-arena-x78h.onrender.com",
+		"cleartext": false
+	}
+}
