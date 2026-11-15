@@ -23,7 +23,8 @@ jobs:
           cd android
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          ./gradlew assembleDebug --stacktrace > build.log 2>&1 || python3 - <<'PY'
+          if ! ./gradlew assembleDebug --stacktrace > build.log 2>&1; then
+            python3 - <<'PY'
 import os, json, urllib.request
 log = open('build.log').read()[-5000:]
 payload = json.dumps({"title": "Android build failure", "body": "```\n" + log + "\n```"}).encode()
@@ -41,7 +42,8 @@ try:
 except Exception as e:
     print("issue create failed:", e)
 PY
-          exit 1
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
