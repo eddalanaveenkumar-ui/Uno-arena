@@ -5,10 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  issues: write
-  contents: read
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -17,7 +13,6 @@ jobs:
     env:
       ANDROID_HOME: /opt/android-sdk
       ANDROID_SDK_ROOT: /opt/android-sdk
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +23,8 @@ jobs:
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           if ! ./gradlew assembleDebug --stacktrace > build.log 2>&1; then
-            python3 "$GITHUB_WORKSPACE/.github/scripts/report_failure.py" || true
+            ERR=$(grep -i -m1 -E "could not|failed|error:|exception:|not found" build.log || tail -n 3 build.log)
+            echo "::error::$ERR"
             exit 1
           fi
 
