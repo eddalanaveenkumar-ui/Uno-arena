@@ -29,7 +29,7 @@ jobs:
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           if ! ./gradlew assembleDebug --stacktrace > build.log 2>&1; then
-            ERR=$(grep -i -m1 -E "could not|not found|exception:|error:" build.log || tail -n 3 build.log)
+            ERR=$(tail -n 25 build.log | tr "\n" " ")
             echo "::error::$ERR"
             exit 1
           fi
