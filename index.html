@@ -637,7 +637,7 @@ function handleMPState(st){
   $('discard').innerHTML='';
   if(st.topCard){
     const tc=cardEl(st.topCard);
-    if(st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
+    if(st.topCard && st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
     $('discard').appendChild(tc);
   }
   $('direction').textContent = st.direction===1?'↻ CLOCKWISE':'↺ COUNTER-CLOCKWISE';
@@ -682,6 +682,7 @@ function handleMPState(st){
 
 function canPlayMP(c,st){
   if(st.pendingDraw>0) return c.value==='+2' || c.value==='+4';
+  if(!st.topCard) return false;
   return c.color==='wild' || c.color===st.currentColor || c.value===st.topCard.value;
 }
 
