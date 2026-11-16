@@ -67,6 +67,12 @@ h1{font-size:clamp(32px,6vw,54px);line-height:1.02;letter-spacing:-2.5px;margin:
 @media(max-width:390px){.seat.top-left,.seat.top-right{top:72px}.seat.left,.seat.right{top:48%}.seat-info small{display:none}.seat{min-width:0}.table-board{min-height:410px}}
 .hero-cards{display:flex;height:92px;margin:0 0 12px 8px}.hero-cards .card{width:58px;height:84px;margin-left:-14px}.hero-cards .card:first-child{margin-left:0}.hero-cards .card:nth-child(1){transform:rotate(-12deg)}.hero-cards .card:nth-child(2){transform:translateY(-6px)}.hero-cards .card:nth-child(3){transform:rotate(12deg)}
 .seat.active{animation:seatPulse 1.4s ease-in-out infinite}@keyframes seatPulse{50%{box-shadow:0 0 0 5px #ffd45a30,0 8px 24px #0005}}
+/* Online multiplayer seat feedback */
+.seat.mp-card-play{animation:mpCardPlay .52s cubic-bezier(.2,.8,.2,1)}
+.seat.mp-card-draw{animation:mpCardDraw .52s cubic-bezier(.2,.8,.2,1)}
+@keyframes mpCardPlay{0%{transform:scale(1);filter:brightness(1)}35%{transform:scale(1.09) translateY(-5px);filter:brightness(1.5);box-shadow:0 0 0 3px #ffd45a88,0 0 25px #ffd45a55}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes mpCardDraw{0%{transform:scale(.96);filter:brightness(1)}45%{transform:scale(1.06);filter:brightness(1.35);box-shadow:0 0 0 3px #55a9ff77,0 0 22px #3988ff44}100%{transform:scale(1);filter:brightness(1)}}
+.discard-pile .card.mp-new-card{animation:pop .38s cubic-bezier(.2,1.4,.4,1)}
 .seat .mini-count.uno{background:var(--red);color:#fff;animation:hint 1s ease-in-out infinite}
 .player-zone{transition:.25s}.player-zone.your-turn{border-color:var(--gold);box-shadow:0 0 0 1px #ffd45a66,0 0 32px #ffd45a1f}
 .hand .card.playable{transform:translateY(-8px)}.hand .card:hover,.hand .card:focus-visible{z-index:3}
@@ -505,13 +511,14 @@ function fitHand(){let h=$('hand');if(!h||!h.children.length)return;
  h.style.setProperty('--nx',(strip-w).toFixed(1)+'px');   /* negative margin = overlap */
  h.classList.add('dense')}
 window.addEventListener('resize',function(){try{fitHand();if(players.length)drawArrows(players.length,SLOTS[players.length]||SLOTS[2])}catch(e){}});
-function drawArrows(n,slots){
+function drawArrows(n,slots,directionOverride){
+ let arrowDirection=directionOverride===1||directionOverride===-1?directionOverride:direction;
  let layer=$('arrows');if(!layer)return;layer.innerHTML='';
  let bd=document.querySelector('.table-board');if(!bd)return;
  let W=bd.clientWidth,H=bd.clientHeight;if(!W||!H)return;
  let A=0.41*W,B=0.39*H;                       /* ellipse radii in PIXELS (aspect-correct) */
  let seq=slots.map(function(s){return ANG[s]});seq.push(270);   /* 270 = YOU, bottom centre */
- let flip=direction===-1?180:0;
+ let flip=arrowDirection===-1?180:0;
  for(let k=0;k<seq.length;k++){
   let a=seq[k],b=seq[(k+1)%seq.length];
   let d=((b-a)%360+360)%360;if(d===0)d=360;
@@ -520,7 +527,7 @@ function drawArrows(n,slots){
   let rot=Math.atan2(B*Math.cos(tr), A*Math.sin(tr))*180/Math.PI+flip;    /* clockwise tangent of the ellipse */
   let x=50+41*Math.cos(tr),y=50-39*Math.sin(tr);
   let el=document.createElement('span');
-  el.className='turn-arrow'+(direction===-1?' rev':'');
+  el.className='turn-arrow'+(arrowDirection===-1?' rev':'');
   el.style.left=x.toFixed(2)+'%';el.style.top=y.toFixed(2)+'%';
   el.style.transform='translate(-50%,-50%) rotate('+rot.toFixed(1)+'deg)';
   el.style.animationDelay=(k*0.12).toFixed(2)+'s';
@@ -671,8 +678,13 @@ function cardElMP(c){ return cardEl(c); }
 
 function handleMPState(st){
   if(!st||!Array.isArray(st.players)||!Number.isInteger(st.you)||!st.players[st.you]) return;
-  st.hand=Array.isArray(st.hand)?st.hand.filter(c=>c&&typeof c==='object'&&c.value!==undefined):[];
-  if(st.topCard&&typeof st.topCard!=='object') st.topCard=null;
+  const previous=mpState;
+  const validCard=c=>!!c&&typeof c==='object'&&typeof c.value!=='undefined'&&['red','yellow','green','blue','wild'].includes(c.color);
+  st.players=st.players.filter(p=>p&&typeof p==='object').map(p=>({...p,cardCount:Number.isFinite(Number(p.cardCount))?Math.max(0,Number(p.cardCount)):0,name:String(p.name||'Player'),emoji:String(p.emoji||'🙂')}));
+  if(!st.players[st.you]) return;
+  st.hand=Array.isArray(st.hand)?st.hand.filter(validCard):[];
+  if(!validCard(st.topCard)) st.topCard=null;
+  if(st.drawnCard&&!validCard(st.drawnCard)) st.drawnCard=null;
   if(!['red','yellow','green','blue'].includes(st.currentColor)) st.currentColor=(st.topCard&&['red','yellow','green','blue'].includes(st.topCard.color))?st.topCard.color:'red';
   mpState=st;
   myIndex=st.you;
@@ -701,15 +713,22 @@ function handleMPState(st){
     const seat=document.createElement('div');
     seat.className='seat '+pos+(i===st.current?' active':'');
     seat.dataset.i=i;
+    seat.dataset.cardCount=String(p.cardCount);
+    if(previous&&Array.isArray(previous.players)&&previous.players[i]){
+      const before=Number(previous.players[i].cardCount),after=Number(p.cardCount);
+      if(Number.isFinite(before)&&after<before) seat.classList.add('mp-card-play');
+      else if(Number.isFinite(before)&&after>before) seat.classList.add('mp-card-draw');
+    }
     seat.innerHTML=`<div class="avatar">${p.emoji}</div><div class="seat-info"><b>${esc(p.name)}</b><small>${i===st.current?'Playing…':'Player'}</small></div><div class="mini-count${p.cardCount===1?' uno':''}">${p.cardCount===1?'UNO!':p.cardCount}</div>`;
     board.appendChild(seat);
   });
-  drawArrows(n, slotsArr);
+  drawArrows(n, slotsArr, st.direction);
   // discard
   $('discard').innerHTML='';
   if(st.topCard){
     const tc=cardEl(st.topCard);
-    if(st.topCard && st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
+    if(previous&&previous.topCard&&JSON.stringify(previous.topCard)!==JSON.stringify(st.topCard)) tc.classList.add('mp-new-card');
+    if(st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
     $('discard').appendChild(tc);
   }
   $('direction').textContent = st.direction===1?'↻ CLOCKWISE':'↺ COUNTER-CLOCKWISE';
