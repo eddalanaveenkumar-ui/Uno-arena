@@ -680,7 +680,7 @@ function handleMPState(st){
   if(!st||!Array.isArray(st.players)||!Number.isInteger(st.you)||!st.players[st.you]) return;
   const previous=mpState;
   const validCard=c=>!!c&&typeof c==='object'&&typeof c.value!=='undefined'&&['red','yellow','green','blue','wild'].includes(c.color);
-  st.players=st.players.filter(p=>p&&typeof p==='object').map(p=>({...p,cardCount:Number.isFinite(Number(p.cardCount))?Math.max(0,Number(p.cardCount)):0,name:String(p.name||'Player'),emoji:String(p.emoji||'🙂')}));
+  st.players=st.players.map(p=>p&&typeof p==='object'?({...p,cardCount:Number.isFinite(Number(p.cardCount))?Math.max(0,Number(p.cardCount)):0,name:String(p.name||'Player'),emoji:String(p.emoji||'🙂')}):({cardCount:0,name:'Player',emoji:'🙂'}));
   if(!st.players[st.you]) return;
   st.hand=Array.isArray(st.hand)?st.hand.filter(validCard):[];
   if(!validCard(st.topCard)) st.topCard=null;
