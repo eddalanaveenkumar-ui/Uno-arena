@@ -530,17 +530,19 @@ function ensureSocket(){
   socket.on('connect_error',()=>{const e=$('friendsErr');if(e)e.textContent='Connection interrupted. Reconnecting…';});
   socket.on('disconnect',()=>{const e=$('friendsErr');if(e)e.textContent='Connection lost. Reconnecting…';});
   socket.on('room_resumed',({code})=>{roomCode=code;mode='friends';showScreen('gameScreen');});
-  socket.on('room_created', ({code,maxPlayers,players})=>{ roomCode=code; isHost=true; showScreen('waitingScreen'); updateWaiting(code,players,maxPlayers,true); });
-  socket.on('room_joined', ({code,maxPlayers})=>{ roomCode=code; isHost=false; showScreen('waitingScreen'); });
-  socket.on('room_update', ({code,maxPlayers,players,hostId,started})=>{
+  socket.on('room_created', ({code,maxPlayers,players,entryFee})=>{ roomCode=code; isHost=true; showScreen('waitingScreen'); updateWaiting(code,players,maxPlayers,true); $('waitingStatus').textContent='Entry fee: '+Number(entryFee||20).toLocaleString()+' coins · waiting for players'; });
+  socket.on('room_joined', ({code,maxPlayers,entryFee})=>{ roomCode=code; isHost=false; showScreen('waitingScreen'); $('waitingStatus').textContent='Entry fee: '+Number(entryFee||20).toLocaleString()+' coins · waiting for host'; });
+  socket.on('room_update', ({code,maxPlayers,players,hostId,started,entryFee})=>{
     roomCode=code; isHost = (hostId===socket.id);
     updateWaiting(code,players,maxPlayers,isHost);
+    if(entryFee)$('waitingStatus').textContent='Entry fee: '+Number(entryFee).toLocaleString()+' coins · '+(started?'match starting':'waiting for players');
   });
-  socket.on('error_msg', (m)=>{ const e=$('friendsErr'); if(e){e.textContent=m;} else alert(m); });
+  socket.on('error_msg', (m)=>{ const e=$('friendsErr'); if(e)e.textContent=m; const w=$('waitingStatus');if(w)w.textContent=m; });
   socket.on('game_start', ()=>{ mode='friends'; showScreen('gameScreen'); });
   socket.on('state', (st)=>{ if(mode!=='friends') return; try{handleMPState(st)}catch(err){console.error('UNO multiplayer render failed',err);const e=$('friendsErr');if(e)e.textContent='Game state error. Waiting for a fresh update…';} });
   socket.on('choose_color', ()=>{ $('colorModal').classList.remove('hidden'); });
   socket.on('reaction', ({fromIndex,emoji})=>{ showReaction(fromIndex,emoji); });
+  socket.on('coin_match_settled',()=>{if(window.unoArenaRefreshProfile)window.unoArenaRefreshProfile();});
   return socket;
 }
 
