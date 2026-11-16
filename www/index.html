@@ -253,6 +253,57 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 
 /* Supabase player profile */
 .profile-header{display:flex;align-items:center;gap:8px}.coin-pill{background:#182c27;border:1px solid #28795c;color:#7be0b0;border-radius:999px;padding:7px 11px;font-weight:900;font-size:12px}.profile-open{border:1px solid var(--line);background:#1d2739;color:#fff;border-radius:999px;padding:8px 12px;font-weight:800}.profile-page{max-width:620px;margin:0 auto;padding:20px 16px 36px}.profile-hero{background:linear-gradient(135deg,#1b2b3e,#173f35);border:1px solid #315e53;border-radius:20px;padding:20px;margin:14px 0}.profile-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-stat{background:#1b2435;border:1px solid var(--line);border-radius:14px;padding:13px}.profile-stat small{display:block;color:var(--muted);font-size:11px}.profile-stat strong{display:block;font-size:23px;margin-top:5px}.profile-section{background:#171f30;border:1px solid var(--line);border-radius:16px;padding:15px;margin-top:12px}.profile-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #2a3447;font-size:13px}.profile-row:last-child{border-bottom:0}.profile-input{width:100%;box-sizing:border-box;margin:7px 0;padding:12px;border-radius:10px;border:1px solid var(--line);background:#101827;color:#fff}.profile-muted{color:var(--muted);font-size:12px}.profile-back{margin-bottom:10px}
+
+/* ===== MOBILE LOBBY + PROFILE SCROLL FIX ===== */
+/* Keep the lobby card at a consistent width regardless of selected player count. */
+#lobbyScreen.screen{
+  display:block;
+  position:fixed;
+  top:70px;left:0;right:0;bottom:0;
+  min-height:0!important;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  padding:0 11px 24px;
+}
+#lobbyScreen .home{
+  display:block;
+  width:min(100%,520px);
+  max-width:520px;
+  min-width:0;
+  flex:0 0 auto;
+  margin:6px auto 24px;
+}
+/* Profile gets its own scroll viewport; it no longer inherits the game's no-scroll layout. */
+#profileScreen.screen{
+  display:block;
+  position:fixed;
+  top:70px;left:0;right:0;bottom:0;
+  z-index:4;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  padding:0 11px calc(24px + env(safe-area-inset-bottom,0px));
+  background:var(--bg);
+}
+#profileScreen .profile-page{
+  width:min(100%,620px);
+  max-width:620px;
+  min-width:0;
+  margin:0 auto;
+  padding:18px 5px 30px;
+}
+@media(max-width:560px){
+  #lobbyScreen.screen,#profileScreen.screen{top:62px}
+}
+@media(max-width:420px){
+  #lobbyScreen .home{width:100%;max-width:520px;margin-top:6px}
+  #profileScreen .profile-page{padding-left:3px;padding-right:3px}
+}
+
 </style>
 </head>
 <body>
@@ -790,7 +841,8 @@ function ensureAudio(){ if(!audioCtx){ try{audioCtx=new (window.AudioContext||wi
 function playTone(freq,dur,type='sine',vol=0.12,delay=0){ if(!soundOn) return; ensureAudio(); if(!audioCtx) return; const t=audioCtx.currentTime+delay; const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+dur+0.02); }
 function playNoise(dur,vol=0.08,filterFreq=1200){ if(!soundOn) return; ensureAudio(); if(!audioCtx) return; const t=audioCtx.currentTime; const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1); const src=audioCtx.createBufferSource(); src.buffer=buf; const f=audioCtx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq; const g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); src.connect(f); f.connect(g); g.connect(audioCtx.destination); src.start(t); src.stop(t+dur); }
 function sfxCardPlace(){ playNoise(0.05,0.12,900); playTone(220,0.04,'triangle',0.06,0.01); }
-function sfxCardDraw(){ playNoise(0.08,0.07,1500); playTone(600,0.06,'sine',0.05,0.02); }
+function sfxButtonClick(){ playTone(1200,0.05,'sine',0.09); playTone(1600,0.04,'sine',0.06,0.03); }
+function sfxCardDraw(){ playNoise(0.1,0.18,1800); playTone(720,0.08,'sine',0.12,0.02); playTone(960,0.06,'sine',0.08,0.05); }
 function sfxShuffle(){ for(let i=0;i<6;i++) playNoise(0.04,0.06,2000+i*200, i*0.05); }
 function sfxDeal(){ sfxShuffle(); for(let i=0;i<8;i++) playTone(400+i*30,0.03,'square',0.04,0.15+i*0.06); }
 function sfxSkip(){ playNoise(0.12,0.1,2500); playTone(800,0.08,'sawtooth',0.06,0.02); }
@@ -804,6 +856,7 @@ function sfxOpponentTurn(){ playTone(440,0.08,'sine',0.05); }
 function sfxVictory(){ const notes=[523,587,659,698,784,880,988,1047]; notes.forEach((n,i)=>playTone(n,0.12,'sine',0.09,i*0.1)); playNoise(0.4,0.06,3000,0.8); if(window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('You win!'); u.rate=1.05; window.speechSynthesis.speak(u);}catch(e){} } }
 // ===== END SOUND EFFECTS =====
 
+document.addEventListener('click', function(e){ var b=e.target && e.target.closest ? e.target.closest('button') : null; if(b){ ensureAudio(); sfxButtonClick(); } }, true);
 setupPreview();
 document.documentElement.dataset.gameReady='true';
 })();
