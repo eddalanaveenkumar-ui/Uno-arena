@@ -16,6 +16,8 @@ const NAMES = ['Nova','Pixel','Rex','Mochi','Ziggy','Luna','Kai'];
 
 const rooms = new Map();
 
+function playerTokenFor(socket){ return String(socket.handshake.auth?.playerToken||socket.id).slice(0,120); }
+
 function genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let c = '';
@@ -29,7 +31,7 @@ function take(room){ if(!room.game.deck.length){ if(room.game.discard.length<=1)
 
 function newGame(room) {
   const g = {
-    players: room.players.map(p => ({ id: p.id, name: p.name, emoji: p.emoji, cards: [] })),
+    players: room.players.map(p => ({ id: p.id, token:p.token, name: p.name, emoji: p.emoji, cards: [] })),
     deck: makeDeck(),
     discard: [],
     current: 0,
@@ -152,7 +154,7 @@ function createRoom(socket, name, count){
     code,
     hostId: socket.id,
     maxPlayers: Math.max(2, Math.min(6, count||2)),
-    players: [{ id: socket.id, name: (name||'Player').slice(0,16), emoji: EMOJIS[0] }],
+    players: [{ id: socket.id, token: playerTokenFor(socket), name: (name||'Player').slice(0,16), emoji: EMOJIS[0] }],
     game: null,
     round: 0,
     started: false
@@ -178,6 +180,19 @@ function broadcastRoom(room){
 }
 
 io.on('connection', (socket) => {
+  const playerToken=String(socket.handshake.auth?.playerToken||'').slice(0,120);
+  if(playerToken){
+    for(const room of rooms.values()){
+      const player=room.players.find(p=>p.token===playerToken);
+      if(!player) continue;
+      player.id=socket.id;
+      socket.data.code=room.code;
+      socket.join(room.code);
+      if(room.game){const gp=room.game.players.find(p=>p.token===playerToken);if(gp)gp.id=socket.id;socket.emit('room_resumed',{code:room.code});socket.emit('game_start',{code:room.code});broadcastState(room);}
+      else broadcastRoom(room);
+      break;
+    }
+  }
   socket.on('create_room', ({name, count}) => {
     createRoom(socket, name, count);
   });
@@ -188,7 +203,7 @@ io.on('connection', (socket) => {
     if(room.started){ socket.emit('error_msg', 'Game already started'); return; }
     if(room.players.length >= room.maxPlayers){ socket.emit('error_msg', 'Room full'); return; }
     const idx = room.players.length;
-    const p = { id: socket.id, name: (name||'Player').slice(0,16), emoji: EMOJIS[idx % EMOJIS.length] };
+    const p = { id: socket.id, token: playerTokenFor(socket), name: (name||'Player').slice(0,16), emoji: EMOJIS[idx % EMOJIS.length] };
     room.players.push(p);
     socket.join(room.code);
     socket.data.code = room.code;
@@ -322,18 +337,21 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    const code = socket.data.code;
+    const code=socket.data.code;
     if(!code) return;
-    const room = rooms.get(code);
+    const room=rooms.get(code);
     if(!room) return;
-    room.players = room.players.filter(p=>p.id!==socket.id);
-    if(room.players.length===0){ rooms.delete(code); return; }
-    if(room.hostId===socket.id) room.hostId = room.players[0].id;
-    if(!room.started) broadcastRoom(room);
-    else {
-      // mark game over? keep simple
-      if(room.game){ room.game.gameOver=true; room.game.winner = room.game.players.findIndex(p=>p.id===room.players[0].id); broadcastState(room); }
+    // Keep an in-progress seat and game state during temporary network loss.
+    // The same browser reconnects with its stable playerToken and reclaims this seat.
+    if(room.started){
+      const player=room.players.find(p=>p.id===socket.id);
+      if(player) player.disconnectedAt=Date.now();
+      return;
     }
+    room.players=room.players.filter(p=>p.id!==socket.id);
+    if(room.players.length===0){rooms.delete(code);return;}
+    if(room.hostId===socket.id) room.hostId=room.players[0].id;
+    broadcastRoom(room);
   });
 });
 
