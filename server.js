@@ -185,7 +185,9 @@ io.on('connection', (socket) => {
     for(const room of rooms.values()){
       const player=room.players.find(p=>p.token===playerToken);
       if(!player) continue;
+      const previousSocketId=player.id;
       player.id=socket.id;
+      if(room.hostId===previousSocketId) room.hostId=socket.id;
       socket.data.code=room.code;
       socket.join(room.code);
       if(room.game){const gp=room.game.players.find(p=>p.token===playerToken);if(gp)gp.id=socket.id;socket.emit('room_resumed',{code:room.code});socket.emit('game_start',{code:room.code});broadcastState(room);}
