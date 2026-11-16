@@ -1,6 +1,13 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAuth = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY ? createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}) : null;
+const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY ? createClient(SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}) : null;
 const path = require('path');
 
 const app = express();
@@ -16,7 +23,7 @@ const NAMES = ['Nova','Pixel','Rex','Mochi','Ziggy','Luna','Kai'];
 
 const rooms = new Map();
 
-function playerTokenFor(socket){ return String(socket.handshake.auth?.playerToken||socket.id).slice(0,120); }
+function playerTokenFor(socket){ return String(socket.data.playerToken||socket.id).slice(0,120); }
 
 function genCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -31,7 +38,7 @@ function take(room){ if(!room.game.deck.length){ if(room.game.discard.length<=1)
 
 function newGame(room) {
   const g = {
-    players: room.players.map(p => ({ id: p.id, token:p.token, name: p.name, emoji: p.emoji, cards: [] })),
+    players: room.players.map(p => ({ id: p.id, token:p.token, userId:p.userId, name: p.name, emoji: p.emoji, cards: [] })),
     deck: makeDeck(),
     discard: [],
     current: 0,
@@ -113,9 +120,18 @@ function resolveCard(room, who, c){
 
 function endGame(room, winnerIndex){
   const g=room.game;
+  if(g.gameOver) return;
   g.gameOver=true;
   g.winner=winnerIndex;
   broadcastState(room);
+  if(room.dbMatchId && supabaseAdmin){
+    const runnerUp=g.players.map((p,i)=>({p,i})).filter(x=>x.i!==winnerIndex).sort((a,b)=>a.p.cards.length-b.p.cards.length)[0];
+    if(runnerUp){
+      supabaseAdmin.rpc('settle_coin_match_server',{p_match_id:room.dbMatchId,p_winner_id:g.players[winnerIndex].userId,p_runner_up_id:runnerUp.p.userId})
+        .then(({data,error})=>{if(error) console.error('Coin match settlement failed',error);else io.to(room.code).emit('coin_match_settled',data);})
+        .catch(error=>console.error('Coin match settlement failed',error));
+    }
+  }
 }
 
 function broadcastState(room){
@@ -147,14 +163,15 @@ function broadcastState(room){
   // also to spectators? none
 }
 
-function createRoom(socket, name, count){
+function createRoom(socket, name, count, entryFee){
   let code;
   do { code = genCode(); } while(rooms.has(code));
   const room = {
     code,
     hostId: socket.id,
     maxPlayers: Math.max(2, Math.min(6, count||2)),
-    players: [{ id: socket.id, token: playerTokenFor(socket), name: (name||'Player').slice(0,16), emoji: EMOJIS[0] }],
+    entryFee: [20,40,80,160,320,640,1280,2560,5120,10240,20480,40960,50000].includes(Number(entryFee))?Number(entryFee):20,
+    players: [{ id: socket.id, token: playerTokenFor(socket), userId:socket.data.userId, name: (name||'Player').slice(0,16), emoji: EMOJIS[0] }],
     game: null,
     round: 0,
     started: false
@@ -164,7 +181,7 @@ function createRoom(socket, name, count){
   rooms.set(code, room);
   socket.join(code);
   socket.data.code = code;
-  socket.emit('room_created', { code, maxPlayers: room.maxPlayers, players: room.players.map((p,i)=>({name:p.name,emoji:p.emoji})) });
+  socket.emit('room_created', { code, maxPlayers: room.maxPlayers, entryFee:room.entryFee, players: room.players.map((p,i)=>({name:p.name,emoji:p.emoji})) });
   broadcastRoom(room);
   return room;
 }
@@ -175,12 +192,26 @@ function broadcastRoom(room){
     maxPlayers: room.maxPlayers,
     players: room.players.map((p,i)=>({ name:p.name, emoji:p.emoji, id:p.id })),
     hostId: room.hostId,
+    entryFee: room.entryFee,
     started: room.started
   });
 }
 
+io.use(async (socket, next) => {
+  try {
+    if (!supabaseAuth) return next(new Error('UNO Arena authentication is not configured on the game server'));
+    const accessToken = socket.handshake.auth?.accessToken;
+    if (!accessToken) return next(new Error('Please sign in before joining a room'));
+    const { data, error } = await supabaseAuth.auth.getUser(accessToken);
+    if (error || !data?.user) return next(new Error('Your player session is invalid. Reopen UNO Arena and try again.'));
+    socket.data.userId = data.user.id;
+    socket.data.playerToken = data.user.id;
+    next();
+  } catch (error) { next(new Error('Could not verify your player account')); }
+});
+
 io.on('connection', (socket) => {
-  const playerToken=String(socket.handshake.auth?.playerToken||'').slice(0,120);
+  const playerToken=String(socket.data.playerToken||'').slice(0,120);
   if(playerToken){
     for(const room of rooms.values()){
       const player=room.players.find(p=>p.token===playerToken);
@@ -195,8 +226,8 @@ io.on('connection', (socket) => {
       break;
     }
   }
-  socket.on('create_room', ({name, count}) => {
-    createRoom(socket, name, count);
+  socket.on('create_room', ({name, count, entryFee}) => {
+    createRoom(socket, name, count, entryFee);
   });
 
   socket.on('join_room', ({code, name}) => {
@@ -205,11 +236,11 @@ io.on('connection', (socket) => {
     if(room.started){ socket.emit('error_msg', 'Game already started'); return; }
     if(room.players.length >= room.maxPlayers){ socket.emit('error_msg', 'Room full'); return; }
     const idx = room.players.length;
-    const p = { id: socket.id, token: playerTokenFor(socket), name: (name||'Player').slice(0,16), emoji: EMOJIS[idx % EMOJIS.length] };
+    const p = { id: socket.id, token: playerTokenFor(socket), userId:socket.data.userId, name: (name||'Player').slice(0,16), emoji: EMOJIS[idx % EMOJIS.length] };
     room.players.push(p);
     socket.join(room.code);
     socket.data.code = room.code;
-    socket.emit('room_joined', { code: room.code, maxPlayers: room.maxPlayers });
+    socket.emit('room_joined', { code: room.code, maxPlayers: room.maxPlayers, entryFee:room.entryFee });
     broadcastRoom(room);
     // auto start when full
     if(room.players.length >= room.maxPlayers){
@@ -357,11 +388,24 @@ io.on('connection', (socket) => {
   });
 });
 
-function startGame(room){
-  room.started = true;
-  newGame(room);
-  io.to(room.code).emit('game_start', { code: room.code });
-  broadcastState(room);
+async function startGame(room){
+  if(room.started || room.starting) return;
+  room.starting=true;
+  try {
+    if(!supabaseAdmin) throw new Error('Coin matches are temporarily unavailable. Configure SUPABASE_SERVICE_ROLE_KEY on the game server.');
+    const playerIds=room.players.map(p=>p.userId);
+    if(playerIds.some(id=>!id)) throw new Error('A player account could not be verified. Rejoin the room.');
+    const {data:matchId,error}=await supabaseAdmin.rpc('create_coin_match_server',{p_entry_fee:room.entryFee||20,p_player_ids:playerIds});
+    if(error) throw error;
+    room.dbMatchId=matchId;
+    room.started=true;
+    newGame(room);
+    io.to(room.code).emit('game_start', { code: room.code, entryFee:room.entryFee, matchId });
+    broadcastState(room);
+  } catch(error) {
+    room.starting=false;
+    io.to(room.code).emit('error_msg', error.message||'Could not start coin match');
+  }
 }
 
 const PORT = process.env.PORT || 3000;
