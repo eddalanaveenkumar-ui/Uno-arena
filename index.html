@@ -414,7 +414,7 @@ $('rulesPop').addEventListener('click',e=>{if(e.target===$('rulesPop'))$('rulesP
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function makeDeck(){let d=[];for(let c of COLORS){d.push({color:c,value:'0'});for(let n=1;n<=9;n++)d.push({color:c,value:''+n},{color:c,value:''+n});for(let v of ['Skip','Reverse','+2'])d.push({color:c,value:v},{color:c,value:v})}for(let i=0;i<4;i++)d.push({color:'wild',value:'Wild'},{color:'wild',value:'+4'});return shuffle(d)}
 function take(){if(!deck.length){if(discard.length<=1)return null;let top=discard.pop();deck=shuffle(discard);discard=[top]}return deck.pop()}
-function deal(){deck=makeDeck();discard=[];players=[{name:playerName(),emoji:'😎',human:true,cards:[]}];for(let i=0;i<selectedCount-1;i++)players.push({name:NAMES[i],emoji:EMOJIS[i],human:false,cards:[]});players.forEach(p=>{for(let i=0;i<7;i++)p.cards.push(take())});let first=take();while(first.color==='wild'||['Skip','Reverse','+2'].includes(first.value)){deck.unshift(first);first=take()}discard.push(first);currentColor=first.color;clearTimeout(botTimer);current=0;direction=1;hasDrawn=false;drawnCard=null;pendingDraw=0;freshSet.clear();gameOver=false;pendingWild=null;unoSaid=false;round++;$('roundChip').textContent='Round '+round;$('playersChip').textContent=selectedCount+' players';$('lobbyScreen').classList.add('hidden');$('gameScreen').classList.remove('hidden');sortHand();render();setStatus('Your turn — play a glowing card');$('notice').textContent='Match by color or number. Stack a +2/+4 on a +2/+4, or draw them all.'}
+function deal(){deck=makeDeck();discard=[];players=[{name:playerName(),emoji:'😎',human:true,cards:[]}];for(let i=0;i<selectedCount-1;i++)players.push({name:NAMES[i],emoji:EMOJIS[i],human:false,cards:[]});players.forEach(p=>{for(let i=0;i<7;i++)p.cards.push(take())});let first=take();while(first.color==='wild'||['Skip','Reverse','+2'].includes(first.value)){deck.unshift(first);first=take()}discard.push(first);currentColor=first.color;clearTimeout(botTimer);current=0;direction=1;hasDrawn=false;drawnCard=null;pendingDraw=0;freshSet.clear();gameOver=false;pendingWild=null;unoSaid=false;round++;$('roundChip').textContent='Round '+round;$('playersChip').textContent=selectedCount+' players';$('lobbyScreen').classList.add('hidden');$('gameScreen').classList.remove('hidden');sortHand();render();setStatus('Your turn — play a glowing card');$('notice').textContent='Match by color or number. Stack a +2/+4 on a +2/+4, or draw them all.';sfxDeal();}
 function topCard(){return discard[discard.length-1]}
 function face(c){return c.value==='+2'?'+2':c.value==='+4'?'+4':c.value==='Reverse'?'↺':c.value==='Skip'?'⊘':c.value==='Wild'?'✦':c.value}
 function cardEl(c){const valid=c&&typeof c==='object';const safe=valid?{color:['red','yellow','green','blue','wild'].includes(c.color)?c.color:'wild',value:String(c.value??'?')}:{color:'wild',value:'?'};let e=document.createElement('div');e.className='card '+safe.color;e.dataset.cardInvalid=valid?'false':'true';e.innerHTML=`<span class="corner">${face(safe)}</span><span class="face">${face(safe)}</span><span class="corner bottom">${face(safe)}</span>`;return e}
@@ -478,16 +478,16 @@ function drawArrows(n,slots){
 }
 function colorHex(c){return {red:'#ff5365',yellow:'#f6d24d',green:'#27c887',blue:'#3988ff'}[c]||'#fff'}
 function nextIndex(from=current){return (from+direction+players.length)%players.length}
-function playHuman(i){if(current!==0||gameOver||pendingWild)return;let c=players[0].cards[i];if(!c)return;if(!humanCanPlay(c)){$('notice').textContent=pendingDraw?'Stack a +2/+4, or tap the deck to draw '+pendingDraw+' cards.':(hasDrawn&&drawnCard&&c!==drawnCard)?'After drawing, you can only play the card you drew.':'That card does not match. Choose a glowing card.';return}players[0].cards.splice(i,1);discard.push(c);hasDrawn=false;drawnCard=null;if(players[0].cards.length===0){if(c.color!=='wild')currentColor=c.color;resolveCard(0,c);return}if(players[0].cards.length>1)unoSaid=false;if(c.color==='wild'){pendingWild=c;render();$('colorModal').classList.remove('hidden');return}currentColor=c.color;resolveCard(0,c)}
+function playHuman(i){if(current!==0||gameOver||pendingWild)return;let c=players[0].cards[i];if(!c)return;if(!humanCanPlay(c)){$('notice').textContent=pendingDraw?'Stack a +2/+4, or tap the deck to draw '+pendingDraw+' cards.':(hasDrawn&&drawnCard&&c!==drawnCard)?'After drawing, you can only play the card you drew.':'That card does not match. Choose a glowing card.';return}players[0].cards.splice(i,1);discard.push(c);sfxCardPlace();if(c.value==='Skip')sfxSkip();else if(c.value==='Reverse')sfxReverse();else if(c.value==='+2')sfxDraw2();else if(c.value==='Wild')sfxWild();else if(c.value==='+4')sfxWild4();hasDrawn=false;drawnCard=null;if(players[0].cards.length===0){if(c.color!=='wild')currentColor=c.color;resolveCard(0,c);return}if(players[0].cards.length>1)unoSaid=false;if(c.color==='wild'){pendingWild=c;render();$('colorModal').classList.remove('hidden');return}currentColor=c.color;resolveCard(0,c)}
 function resolveCard(who,c){if(players[who].cards.length===0){endGame(who);return}let skip=false,draw=0;if(c.value==='Reverse'){direction*=-1;$('notice').textContent='Direction reversed!';if(players.length===2){skip=true;banFx(nextIndex(who));$('notice').textContent='Reverse! '+players[nextIndex(who)].name+' loses a turn.'}}let next=nextIndex(who);if(c.value==='Skip'){skip=true;banFx(next);$('notice').textContent=players[next].name+' is skipped.'}if(isStack(c)){pendingDraw+=c.value==='+2'?2:4;if(players[next].cards.some(isStack)){$('notice').textContent=players[next].name+' can stack a +2/+4 or draw '+pendingDraw+'.'}else{giveCards(next,pendingDraw);pendingDraw=0;skip=true}}if(skip)next=(next+direction+players.length)%players.length;current=next;hasDrawn=false;sortHand();render();if(current===0){setStatus(pendingDraw?'Stack a +2/+4 or draw '+pendingDraw+' cards':'Your turn — play a card');return}setStatus(players[current].name+' is thinking…');schedule(700+Math.random()*500)}
 function chooseColor(color){if(!pendingWild)return;let c=pendingWild;pendingWild=null;currentColor=color;$('colorModal').classList.add('hidden');$('notice').textContent='You chose '+color.toUpperCase()+'.';resolveCard(0,c)}
 document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>chooseColor(b.dataset.color));
-function botTurn(){if(gameOver||current===0)return;let p=players[current];let legal=p.cards.map((c,i)=>({c,i})).filter(x=>canPlay(x.c));let choice=null;if(legal.length){legal.sort((a,b)=>botScore(b.c,p)-botScore(a.c,p));choice=legal[0]}else{let c=take();if(c){p.cards.push(c);(i=>fxQ.push(()=>flyCards(i,1)))(current);if(canPlay(c))choice={c,i:p.cards.length-1}}}if(!choice){$('notice').textContent=p.name+' draws a card and passes.';current=nextIndex(current);render();if(current===0)setStatus('Your turn — '+p.name+' passed');else{setStatus(players[current].name+' is thinking…');schedule(650)}return}let c=p.cards.splice(choice.i,1)[0];discard.push(c);if(c.color==='wild'){let counts={red:0,yellow:0,green:0,blue:0};p.cards.forEach(x=>{if(x.color!=='wild')counts[x.color]++});let best=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];currentColor=counts[best]?best:COLORS[Math.floor(Math.random()*4)]}else currentColor=c.color;$('notice').textContent=p.name+' played '+(c.color==='wild'?c.value:c.color+' '+c.value)+'.'+(c.color==='wild'?' Color: '+currentColor.toUpperCase()+'.':'')+(p.cards.length===1?' UNO!':'');resolveCard(current,c)}
+function botTurn(){if(gameOver||current===0)return;let p=players[current];let legal=p.cards.map((c,i)=>({c,i})).filter(x=>canPlay(x.c));let choice=null;if(legal.length){legal.sort((a,b)=>botScore(b.c,p)-botScore(a.c,p));choice=legal[0]}else{let c=take();if(c){p.cards.push(c);(i=>fxQ.push(()=>flyCards(i,1)))(current);if(canPlay(c))choice={c,i:p.cards.length-1}}}if(!choice){$('notice').textContent=p.name+' draws a card and passes.';current=nextIndex(current);render();if(current===0){setStatus('Your turn — '+p.name+' passed');sfxYourTurn();}else{setStatus(players[current].name+' is thinking…');sfxOpponentTurn();schedule(650)}return}let c=p.cards.splice(choice.i,1)[0];discard.push(c);sfxCardPlace();if(c.value==='Skip')sfxSkip();else if(c.value==='Reverse')sfxReverse();else if(c.value==='+2')sfxDraw2();else if(c.value==='Wild')sfxWild();else if(c.value==='+4')sfxWild4();if(c.color==='wild'){let counts={red:0,yellow:0,green:0,blue:0};p.cards.forEach(x=>{if(x.color!=='wild')counts[x.color]++});let best=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];currentColor=counts[best]?best:COLORS[Math.floor(Math.random()*4)]}else currentColor=c.color;$('notice').textContent=p.name+' played '+(c.color==='wild'?c.value:c.color+' '+c.value)+'.'+(c.color==='wild'?' Color: '+currentColor.toUpperCase()+'.':'')+(p.cards.length===1?' UNO!':'');resolveCard(current,c)}
 function botScore(c,p){let score=0;if(c.color===currentColor)score+=3;if(['Skip','Reverse','+2','+4'].includes(c.value))score+=5;if(c.value==='+4')score+=2;if(c.color==='wild')score+=1;let same=p.cards.filter(x=>x.color===c.color).length;score+=same*.7;return score}
-function drawHuman(){if(current!==0||hasDrawn||gameOver)return;if(pendingDraw>0){let n=pendingDraw;pendingDraw=0;giveCards(0,n);current=nextIndex(0);sortHand();render();setStatus(players[current].name+' is thinking…');schedule(900);return}let c=take();if(c){players[0].cards.push(c);hasDrawn=true;drawnCard=c;sortHand();fxQ.push(()=>flyCards(0,1));render();if(canPlay(c)){$('notice').textContent='You drew a playable card. Play it or end your turn.';setStatus('You can play the card you just drew, or end your turn.')}else{$('notice').textContent='No playable card. End your turn.';setStatus('Card drawn — end your turn')}}else{$('notice').textContent='No cards remain in the draw pile.';hasDrawn=true;render()}}
+function drawHuman(){if(current!==0||hasDrawn||gameOver)return;if(pendingDraw>0){let n=pendingDraw;pendingDraw=0;giveCards(0,n);current=nextIndex(0);sortHand();render();setStatus(players[current].name+' is thinking…');schedule(900);return}let c=take();if(c){players[0].cards.push(c);sfxCardDraw();hasDrawn=true;drawnCard=c;sortHand();fxQ.push(()=>flyCards(0,1));render();if(canPlay(c)){$('notice').textContent='You drew a playable card. Play it or end your turn.';setStatus('You can play the card you just drew, or end your turn.')}else{$('notice').textContent='No playable card. End your turn.';setStatus('Card drawn — end your turn')}}else{$('notice').textContent='No cards remain in the draw pile.';hasDrawn=true;render()}}
 function endHumanTurn(){if(current!==0||!hasDrawn||gameOver)return;hasDrawn=false;drawnCard=null;current=nextIndex(0);render();if(current===0)setStatus('Your turn');else{setStatus(players[current].name+' is thinking…');schedule(650)}}
-function endGame(winner){gameOver=true;render();let human=players[winner].human;$('resultIcon').textContent=human?'🏆':'🤖';$('resultTitle').textContent=human?'You win!':players[winner].name+' wins!';$('resultText').textContent=human?'You emptied your hand first. Brilliant play!':'The bot got rid of all its cards. Ready for a rematch?';$('resultModal').classList.remove('hidden');setStatus(human?'Victory!':'Match finished')}
-$('unoBtn').onclick=()=>{if(players[0].cards.length<=2){unoSaid=true;$('notice').textContent='UNO! You called it — finish strong.';render()}};
+function endGame(winner){gameOver=true;sfxVictory();render();let human=players[winner].human;$('resultIcon').textContent=human?'🏆':'🤖';$('resultTitle').textContent=human?'You win!':players[winner].name+' wins!';$('resultText').textContent=human?'You emptied your hand first. Brilliant play!':'The bot got rid of all its cards. Ready for a rematch?';$('resultModal').classList.remove('hidden');setStatus(human?'Victory!':'Match finished')}
+$('unoBtn').onclick=()=>{if(players[0].cards.length<=2){unoSaid=true;sfxUno();$('notice').textContent='UNO! You called it — finish strong.';render()}};
 $('drawBtn').onclick=drawHuman;$('endBtn').onclick=endHumanTurn;$('startBtn').onclick=()=>{mode='bots';round=0;deal()};$('newMatchBtn').onclick=()=>{mode='bots';round=0;deal()};$('againBtn').onclick=()=>{$('resultModal').classList.add('hidden');deal()};function backLobby(){$('rulesPop')&&$('rulesPop').classList.add('hidden');clearTimeout(botTimer);gameOver=true;$('colorModal').classList.add('hidden');$('resultModal').classList.add('hidden');$('gameScreen').classList.add('hidden');$('lobbyScreen').classList.remove('hidden');setupPreview()}$('backBtn').onclick=backLobby;$('resultLobbyBtn').onclick=backLobby;
 
 // ===== FRIENDS / MULTIPLAYER =====
@@ -499,6 +499,7 @@ let roomCode = null;
 let isHost = false;
 let myIndex = 0;
 let mpState = null;
+let mpPrevCurrent = null, mpGameOverPlayed = false;
 
 function showScreen(id){
   ['lobbyScreen','friendsScreen','waitingScreen','gameScreen','profileScreen'].forEach(s=>{
@@ -538,7 +539,7 @@ function ensureSocket(){
     if(entryFee)$('waitingStatus').textContent='Entry fee: '+Number(entryFee).toLocaleString()+' coins · '+(started?'match starting':'waiting for players');
   });
   socket.on('error_msg', (m)=>{ const e=$('friendsErr'); if(e)e.textContent=m; const w=$('waitingStatus');if(w)w.textContent=m; });
-  socket.on('game_start', ()=>{ mode='friends'; showScreen('gameScreen'); });
+  socket.on('game_start', ()=>{ mode='friends'; mpPrevCurrent=null; mpGameOverPlayed=false; showScreen('gameScreen'); });
   socket.on('state', (st)=>{ if(mode!=='friends') return; try{handleMPState(st)}catch(err){console.error('UNO multiplayer render failed',err);const e=$('friendsErr');if(e)e.textContent='Game state error. Waiting for a fresh update…';} });
   socket.on('choose_color', ()=>{ $('colorModal').classList.remove('hidden'); });
   socket.on('reaction', ({fromIndex,emoji})=>{ showReaction(fromIndex,emoji); });
@@ -625,6 +626,9 @@ function handleMPState(st){
   if(!['red','yellow','green','blue'].includes(st.currentColor)) st.currentColor=(st.topCard&&['red','yellow','green','blue'].includes(st.topCard.color))?st.topCard.color:'red';
   mpState=st;
   myIndex=st.you;
+  if(mpPrevCurrent!==null && mpPrevCurrent!==st.current){ if(st.current===myIndex) sfxYourTurn(); else sfxOpponentTurn(); }
+  mpPrevCurrent=st.current;
+  if(st.gameOver && !mpGameOverPlayed){ sfxVictory(); mpGameOverPlayed=true; }
   // update chips
   $('playersChip').textContent = st.players.length+' players';
   $('roundChip').textContent = 'Round '+st.round;
@@ -719,10 +723,12 @@ function playMPCard(idx){
   if(c.color==='wild'){
     // play then choose color via modal; server handles pendingWild
     socket.emit('play_card',{code:roomCode, index: idx});
+    sfxCardPlace(); if(c.value==='Skip')sfxSkip(); else if(c.value==='Reverse')sfxReverse(); else if(c.value==='+2')sfxDraw2(); else if(c.value==='Wild')sfxWild(); else if(c.value==='+4')sfxWild4();
     // wait for choose_color event from server
     return;
   }
   socket.emit('play_card',{code:roomCode, index: idx});
+  sfxCardPlace(); if(c.value==='Skip')sfxSkip(); else if(c.value==='Reverse')sfxReverse(); else if(c.value==='+2')sfxDraw2(); else if(c.value==='Wild')sfxWild(); else if(c.value==='+4')sfxWild4();
 }
 
 // color modal choose for multiplayer
@@ -742,7 +748,7 @@ document.querySelectorAll('[data-color]').forEach(b=>{
 
 $('drawBtn').addEventListener('click', ()=>{
   if(mode==='friends' && roomCode){
-    socket.emit('draw_card',{code:roomCode});
+    socket.emit('draw_card',{code:roomCode}); sfxCardDraw();
   }
 });
 $('endBtn').addEventListener('click', ()=>{
@@ -752,7 +758,7 @@ $('endBtn').addEventListener('click', ()=>{
 });
 $('unoBtn').addEventListener('click', ()=>{
   if(mode==='friends' && roomCode){
-    socket.emit('call_uno',{code:roomCode});
+    socket.emit('call_uno',{code:roomCode}); sfxUno();
   }
 });
 
@@ -776,6 +782,27 @@ $('backBtn').onclick = ()=>{
 };
 
 // Reaction show helper uses rectOf which exists
+
+
+// ===== SOUND EFFECTS =====
+let audioCtx=null, soundOn=true;
+function ensureAudio(){ if(!audioCtx){ try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null} } if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
+function playTone(freq,dur,type='sine',vol=0.12,delay=0){ if(!soundOn) return; ensureAudio(); if(!audioCtx) return; const t=audioCtx.currentTime+delay; const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t+dur+0.02); }
+function playNoise(dur,vol=0.08,filterFreq=1200){ if(!soundOn) return; ensureAudio(); if(!audioCtx) return; const t=audioCtx.currentTime; const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*dur,audioCtx.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1); const src=audioCtx.createBufferSource(); src.buffer=buf; const f=audioCtx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=filterFreq; const g=audioCtx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); src.connect(f); f.connect(g); g.connect(audioCtx.destination); src.start(t); src.stop(t+dur); }
+function sfxCardPlace(){ playNoise(0.05,0.12,900); playTone(220,0.04,'triangle',0.06,0.01); }
+function sfxCardDraw(){ playNoise(0.08,0.07,1500); playTone(600,0.06,'sine',0.05,0.02); }
+function sfxShuffle(){ for(let i=0;i<6;i++) playNoise(0.04,0.06,2000+i*200, i*0.05); }
+function sfxDeal(){ sfxShuffle(); for(let i=0;i<8;i++) playTone(400+i*30,0.03,'square',0.04,0.15+i*0.06); }
+function sfxSkip(){ playNoise(0.12,0.1,2500); playTone(800,0.08,'sawtooth',0.06,0.02); }
+function sfxReverse(){ for(let i=0;i<5;i++) playTone(300+i*80,0.06,'sine',0.05,i*0.05); }
+function sfxDraw2(){ playNoise(0.06,0.1,1000); playTone(300,0.08,'square',0.08,0.05); playNoise(0.06,0.1,1000,0.12); playTone(260,0.08,'square',0.08,0.17); }
+function sfxWild(){ playTone(523,0.1,'sine',0.08); playTone(659,0.1,'sine',0.08,0.1); playTone(784,0.12,'sine',0.08,0.2); playTone(1047,0.18,'sine',0.09,0.3); }
+function sfxWild4(){ playNoise(0.15,0.12,600); playTone(200,0.2,'sawtooth',0.1); playTone(400,0.15,'sine',0.08,0.1); playTone(600,0.15,'sine',0.08,0.2); playTone(900,0.25,'sine',0.1,0.35); }
+function sfxUno(){ ensureAudio(); if(window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('UNO!'); u.rate=1.1; u.pitch=1.2; u.volume=0.9; window.speechSynthesis.speak(u);}catch(e){} } playTone(880,0.12,'square',0.1); playTone(1100,0.15,'square',0.1,0.12); }
+function sfxYourTurn(){ playTone(660,0.08,'sine',0.07); playTone(880,0.1,'sine',0.07,0.1); }
+function sfxOpponentTurn(){ playTone(440,0.08,'sine',0.05); }
+function sfxVictory(){ const notes=[523,587,659,698,784,880,988,1047]; notes.forEach((n,i)=>playTone(n,0.12,'sine',0.09,i*0.1)); playNoise(0.4,0.06,3000,0.8); if(window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('You win!'); u.rate=1.05; window.speechSynthesis.speak(u);}catch(e){} } }
+// ===== END SOUND EFFECTS =====
 
 setupPreview();
 document.documentElement.dataset.gameReady='true';
