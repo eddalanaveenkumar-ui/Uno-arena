@@ -353,6 +353,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
  </div>
 </section>
 
+<section id="gameScreen" class="screen hidden">
  <div class="game-top"><div class="game-title">UNO Arena <span style="color:var(--gold)">/</span> Match</div><div class="game-meta"><span class="chip" id="roundChip">Round 1</span><span class="chip" id="playersChip">4 players</span><button type="button" class="secondary" id="backBtn">← Lobby</button></div></div>
  <div class="table-board" id="board">
   <div id="seats"></div>
@@ -377,7 +378,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 <div class="modal-backdrop hidden" id="resultModal"><div class="modal"><div class="result-icon" id="resultIcon">🏆</div><h2 id="resultTitle">You win!</h2><p id="resultText">Great match.</p><div class="result-actions"><button type="button" class="primary" id="againBtn">PLAY AGAIN</button><button type="button" class="secondary" id="resultLobbyBtn">Back to lobby</button></div></div></div>
 <div id="errBanner" class="hidden" style="position:fixed;left:8px;right:8px;bottom:8px;z-index:50;background:#7a1020;color:#fff;padding:10px 12px;border-radius:10px;font:12px/1.4 system-ui,sans-serif;pointer-events:none"></div>
 <script>window.addEventListener('error',function(e){var b=document.getElementById('errBanner');if(b){b.classList.remove('hidden');b.textContent='Script error: '+(e.message||'unknown')}});</script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://uno-arena-x78h.onrender.com/socket.io/socket.io.js"></script>
 <script>
 (function(){
 const COLORS=['red','yellow','green','blue'],EMOJIS=['🤖','🦊','🐼','🐸','🐯'],NAMES=['Nova','Pixel','Rex','Mochi','Ziggy'];
@@ -513,7 +514,7 @@ initFriendsCountGrid();
 function ensureSocket(){
   if(socket) return socket;
   if(typeof io==='undefined'){ alert('Socket.io not loaded'); return null; }
-  socket = io();
+  socket = io('https://uno-arena-x78h.onrender.com');
   socket.on('room_created', ({code,maxPlayers,players})=>{ roomCode=code; isHost=true; showScreen('waitingScreen'); updateWaiting(code,players,maxPlayers,true); });
   socket.on('room_joined', ({code,maxPlayers})=>{ roomCode=code; isHost=false; showScreen('waitingScreen'); });
   socket.on('room_update', ({code,maxPlayers,players,hostId,started})=>{
@@ -636,7 +637,7 @@ function handleMPState(st){
   $('discard').innerHTML='';
   if(st.topCard){
     const tc=cardEl(st.topCard);
-    if(st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
+    if(st.topCard && st.topCard.color==='wild') tc.style.boxShadow='0 0 0 4px '+colorHex(st.currentColor);
     $('discard').appendChild(tc);
   }
   $('direction').textContent = st.direction===1?'↻ CLOCKWISE':'↺ COUNTER-CLOCKWISE';
@@ -681,6 +682,7 @@ function handleMPState(st){
 
 function canPlayMP(c,st){
   if(st.pendingDraw>0) return c.value==='+2' || c.value==='+4';
+  if(!st.topCard) return false;
   return c.color==='wild' || c.color===st.currentColor || c.value===st.topCard.value;
 }
 
