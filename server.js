@@ -170,7 +170,7 @@ function createRoom(socket, name, count, entryFee){
     code,
     hostId: socket.id,
     maxPlayers: Math.max(2, Math.min(6, count||2)),
-    entryFee: [20,40,80,160,320,640,1280,2560,5120,10240,20480,32768,50000].includes(Number(entryFee))?Number(entryFee):20,
+    entryFee: [20,40,80,160,320,640,1280,2560,5120,10240,20480,40960,50000].includes(Number(entryFee))?Number(entryFee):20,
     players: [{ id: socket.id, token: playerTokenFor(socket), userId:socket.data.userId, name: (name||'Player').slice(0,16), emoji: EMOJIS[0] }],
     game: null,
     round: 0,
@@ -181,7 +181,7 @@ function createRoom(socket, name, count, entryFee){
   rooms.set(code, room);
   socket.join(code);
   socket.data.code = code;
-  socket.emit('room_created', { code, maxPlayers: room.maxPlayers, players: room.players.map((p,i)=>({name:p.name,emoji:p.emoji})) });
+  socket.emit('room_created', { code, maxPlayers: room.maxPlayers, entryFee:room.entryFee, players: room.players.map((p,i)=>({name:p.name,emoji:p.emoji})) });
   broadcastRoom(room);
   return room;
 }
@@ -192,6 +192,7 @@ function broadcastRoom(room){
     maxPlayers: room.maxPlayers,
     players: room.players.map((p,i)=>({ name:p.name, emoji:p.emoji, id:p.id })),
     hostId: room.hostId,
+    entryFee: room.entryFee,
     started: room.started
   });
 }
@@ -239,7 +240,7 @@ io.on('connection', (socket) => {
     room.players.push(p);
     socket.join(room.code);
     socket.data.code = room.code;
-    socket.emit('room_joined', { code: room.code, maxPlayers: room.maxPlayers });
+    socket.emit('room_joined', { code: room.code, maxPlayers: room.maxPlayers, entryFee:room.entryFee });
     broadcastRoom(room);
     // auto start when full
     if(room.players.length >= room.maxPlayers){
