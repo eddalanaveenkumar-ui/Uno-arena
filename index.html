@@ -524,9 +524,7 @@ initFriendsCountGrid();
 function ensureSocket(){
   if(socket) return socket;
   if(typeof io==='undefined'){ alert('Socket.io not loaded'); return null; }
-  let playerToken=localStorage.getItem('unoArenaPlayerToken');
-  if(!playerToken){playerToken=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'ua-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);localStorage.setItem('unoArenaPlayerToken',playerToken)}
-  socket = io('https://uno-arena-x78h.onrender.com',{auth:{playerToken},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:20000});
+  socket = io('https://uno-arena-x78h.onrender.com',{auth:async cb=>{try{const session=await window.unoArenaGetSession();cb({accessToken:session.access_token,playerToken:session.user.id});}catch(e){cb({});}},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:20000});
   socket.on('connect',()=>{const e=$('friendsErr');if(e)e.textContent='Connected';});
   socket.on('connect_error',()=>{const e=$('friendsErr');if(e)e.textContent='Connection interrupted. Reconnecting…';});
   socket.on('disconnect',()=>{const e=$('friendsErr');if(e)e.textContent='Connection lost. Reconnecting…';});
@@ -576,7 +574,7 @@ $('createRoomBtn').onclick = ()=>{
   const s=ensureSocket(); if(!s) return;
   const name = playerName();
   $('friendsErr').textContent='';
-  s.emit('create_room',{name, count: mpSelectedCount});
+  s.emit('create_room',{name, count: mpSelectedCount, entryFee:Number($('entryFeeSelect').value||20)});
 };
 $('joinRoomBtn').onclick = ()=>{
   const s=ensureSocket(); if(!s) return;
@@ -786,6 +784,7 @@ const URL='https://qobptakyzvqptweubrfi.supabase.co',KEY='sb_publishable_FIBuBRb
 const $=id=>document.getElementById(id);if(!window.supabase?.createClient)return;
 const db=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let user=null,profile=null;
+window.unoArenaGetSession=async()=>{let r=await db.auth.getSession();if(!r.data.session){const x=await db.auth.signInAnonymously();if(x.error)throw x.error;r={data:{session:x.data.session}};}user=r.data.session.user;return r.data.session;};
 const rankName=n=>n>=9?'GLOBAL':n>=1?'RANK '+n:'UNRANKED';
 const rankFor=c=>c>=70000?9:c>=18001?8:c>=9001?7:c>=3001?6:c>=2101?5:c>=1500?4:c>=901?3:c>=301?2:c>=100?1:0;
 function msg(t,bad=false){$('profileMessage').textContent=t;$('profileMessage').style.color=bad?'#ff8a95':'#9eb0c8';}
