@@ -406,7 +406,7 @@ function take(){if(!deck.length){if(discard.length<=1)return null;let top=discar
 function deal(){deck=makeDeck();discard=[];players=[{name:playerName(),emoji:'😎',human:true,cards:[]}];for(let i=0;i<selectedCount-1;i++)players.push({name:NAMES[i],emoji:EMOJIS[i],human:false,cards:[]});players.forEach(p=>{for(let i=0;i<7;i++)p.cards.push(take())});let first=take();while(first.color==='wild'||['Skip','Reverse','+2'].includes(first.value)){deck.unshift(first);first=take()}discard.push(first);currentColor=first.color;clearTimeout(botTimer);current=0;direction=1;hasDrawn=false;drawnCard=null;pendingDraw=0;freshSet.clear();gameOver=false;pendingWild=null;unoSaid=false;round++;$('roundChip').textContent='Round '+round;$('playersChip').textContent=selectedCount+' players';$('lobbyScreen').classList.add('hidden');$('gameScreen').classList.remove('hidden');sortHand();render();setStatus('Your turn — play a glowing card');$('notice').textContent='Match by color or number. Stack a +2/+4 on a +2/+4, or draw them all.'}
 function topCard(){return discard[discard.length-1]}
 function face(c){return c.value==='+2'?'+2':c.value==='+4'?'+4':c.value==='Reverse'?'↺':c.value==='Skip'?'⊘':c.value==='Wild'?'✦':c.value}
-function cardEl(c){let e=document.createElement('div');e.className='card '+c.color;e.innerHTML=`<span class="corner">${face(c)}</span><span class="face">${face(c)}</span><span class="corner bottom">${face(c)}</span>`;return e}
+function cardEl(c){const valid=c&&typeof c==='object';const safe=valid?{color:['red','yellow','green','blue','wild'].includes(c.color)?c.color:'wild',value:String(c.value??'?')}:{color:'wild',value:'?'};let e=document.createElement('div');e.className='card '+safe.color;e.dataset.cardInvalid=valid?'false':'true';e.innerHTML=`<span class="corner">${face(safe)}</span><span class="face">${face(safe)}</span><span class="corner bottom">${face(safe)}</span>`;return e}
 function isStack(c){return c.value==='+2'||c.value==='+4'}
 function canPlay(c){if(pendingDraw>0)return isStack(c);return c.color==='wild'||c.color===currentColor||c.value===topCard().value}
 function humanCanPlay(c){return canPlay(c)&&(!hasDrawn||!drawnCard||c===drawnCard)}
@@ -514,7 +514,13 @@ initFriendsCountGrid();
 function ensureSocket(){
   if(socket) return socket;
   if(typeof io==='undefined'){ alert('Socket.io not loaded'); return null; }
-  socket = io('https://uno-arena-x78h.onrender.com');
+  let playerToken=localStorage.getItem('unoArenaPlayerToken');
+  if(!playerToken){playerToken=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'ua-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);localStorage.setItem('unoArenaPlayerToken',playerToken)}
+  socket = io('https://uno-arena-x78h.onrender.com',{auth:{playerToken},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:20000});
+  socket.on('connect',()=>{const e=$('friendsErr');if(e)e.textContent='Connected';});
+  socket.on('connect_error',()=>{const e=$('friendsErr');if(e)e.textContent='Connection interrupted. Reconnecting…';});
+  socket.on('disconnect',()=>{const e=$('friendsErr');if(e)e.textContent='Connection lost. Reconnecting…';});
+  socket.on('room_resumed',({code})=>{roomCode=code;mode='friends';showScreen('gameScreen');});
   socket.on('room_created', ({code,maxPlayers,players})=>{ roomCode=code; isHost=true; showScreen('waitingScreen'); updateWaiting(code,players,maxPlayers,true); });
   socket.on('room_joined', ({code,maxPlayers})=>{ roomCode=code; isHost=false; showScreen('waitingScreen'); });
   socket.on('room_update', ({code,maxPlayers,players,hostId,started})=>{
@@ -523,7 +529,7 @@ function ensureSocket(){
   });
   socket.on('error_msg', (m)=>{ const e=$('friendsErr'); if(e){e.textContent=m;} else alert(m); });
   socket.on('game_start', ()=>{ mode='friends'; showScreen('gameScreen'); });
-  socket.on('state', (st)=>{ if(mode!=='friends') return; handleMPState(st); });
+  socket.on('state', (st)=>{ if(mode!=='friends') return; try{handleMPState(st)}catch(err){console.error('UNO multiplayer render failed',err);const e=$('friendsErr');if(e)e.textContent='Game state error. Waiting for a fresh update…';} });
   socket.on('choose_color', ()=>{ $('colorModal').classList.remove('hidden'); });
   socket.on('reaction', ({fromIndex,emoji})=>{ showReaction(fromIndex,emoji); });
   return socket;
@@ -602,6 +608,10 @@ function showReaction(playerIndex, emoji){
 function cardElMP(c){ return cardEl(c); }
 
 function handleMPState(st){
+  if(!st||!Array.isArray(st.players)||!Number.isInteger(st.you)||!st.players[st.you]) return;
+  st.hand=Array.isArray(st.hand)?st.hand.filter(c=>c&&typeof c==='object'&&c.value!==undefined):[];
+  if(st.topCard&&typeof st.topCard!=='object') st.topCard=null;
+  if(!['red','yellow','green','blue'].includes(st.currentColor)) st.currentColor=(st.topCard&&['red','yellow','green','blue'].includes(st.topCard.color))?st.topCard.color:'red';
   mpState=st;
   myIndex=st.you;
   // update chips
