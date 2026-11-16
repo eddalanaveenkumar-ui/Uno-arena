@@ -60,7 +60,8 @@ function newGame(room) {
   // redo take handling: we passed {game:g}; take expects room.game. Let's instead implement deal with g.
   // Oops: above take({game:g}) works because take reads room.game. Good.
   let first = take({game:g});
-  while (first.color==='wild' || ['Skip','Reverse','+2'].includes(first.value)) { g.deck.unshift(first); first = take({game:g}); }
+  while (first && (first.color==='wild' || ['Skip','Reverse','+2'].includes(first.value))) { g.deck.unshift(first); first = take({game:g}); }
+  if(!first || !COLORS.includes(first.color)) first={color:'red',value:'0'};
   g.discard.push(first);
   g.currentColor = first.color;
   room.game = g;
@@ -75,8 +76,11 @@ function topCard(room){ return room.game.discard[room.game.discard.length-1]; }
 function isStack(c){ return c.value==='+2' || c.value==='+4'; }
 function canPlay(room,c){
   const g=room.game;
+  if(!c || typeof c!=='object' || typeof c.value==='undefined') return false;
   if(g.pendingDraw>0) return isStack(c);
-  return c.color==='wild' || c.color===g.currentColor || c.value===topCard(room).value;
+  const top=topCard(room);
+  if(!top || typeof top!=='object') return false;
+  return c.color==='wild' || c.color===g.currentColor || c.value===top.value;
 }
 
 function giveCards(room, i, n){
@@ -90,6 +94,8 @@ function nextIndex(room, from){ const g=room.game; return (from + g.direction + 
 
 function resolveCard(room, who, c){
   const g=room.game;
+  if(!c || typeof c!=='object' || typeof c.value==='undefined') { console.error('Rejected invalid played card',c); broadcastState(room); return; }
+  if(!g.players[who]) return;
   if(g.players[who].cards.length===0){ endGame(room, who); return; }
   let skip=false;
   if(c.value==='Reverse'){
@@ -294,7 +300,7 @@ io.on('connection', (socket) => {
     if(!g.pendingWild || g.pendingWildPlayer !== socket.id) return;
     const pi = g.players.findIndex(p=>p.id===socket.id);
     const c = topCard(room); // last played wild is top
-    // find the wild card? topCard is the wild just pushed. good.
+    if(!['red','yellow','green','blue'].includes(color) || !c || c.color!=='wild') return;
     g.pendingWild = false;
     g.pendingWildPlayer = null;
     g.currentColor = color;
