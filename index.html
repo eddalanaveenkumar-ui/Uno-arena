@@ -539,7 +539,7 @@ function drawHuman(){if(current!==0||hasDrawn||gameOver)return;if(pendingDraw>0)
 function endHumanTurn(){if(current!==0||!hasDrawn||gameOver)return;hasDrawn=false;drawnCard=null;current=nextIndex(0);render();if(current===0)setStatus('Your turn');else{setStatus(players[current].name+' is thinking…');schedule(650)}}
 function endGame(winner){gameOver=true;sfxVictory();render();let human=players[winner].human;$('resultIcon').textContent=human?'🏆':'🤖';$('resultTitle').textContent=human?'You win!':players[winner].name+' wins!';$('resultText').textContent=human?'You emptied your hand first. Brilliant play!':'The bot got rid of all its cards. Ready for a rematch?';$('resultModal').classList.remove('hidden');setStatus(human?'Victory!':'Match finished')}
 $('unoBtn').onclick=()=>{if(players[0].cards.length<=2){unoSaid=true;sfxUno();$('notice').textContent='UNO! You called it — finish strong.';render()}};
-$('drawBtn').onclick=drawHuman;$('endBtn').onclick=endHumanTurn;$('startBtn').onclick=()=>{mode='bots';round=0;deal()};$('newMatchBtn').onclick=()=>{mode='bots';round=0;deal()};$('againBtn').onclick=()=>{$('resultModal').classList.add('hidden');deal()};function backLobby(){$('rulesPop')&&$('rulesPop').classList.add('hidden');clearTimeout(botTimer);gameOver=true;$('colorModal').classList.add('hidden');$('resultModal').classList.add('hidden');$('gameScreen').classList.add('hidden');$('lobbyScreen').classList.remove('hidden');setupPreview()}$('backBtn').onclick=backLobby;$('resultLobbyBtn').onclick=backLobby;
+$('drawBtn').onclick=()=>{if(mode==='friends'){if(socket&&socket.connected&&roomCode)socket.emit('draw_card',{code:roomCode});return}drawHuman()};$('endBtn').onclick=()=>{if(mode==='friends'){if(socket&&socket.connected&&roomCode)socket.emit('end_turn',{code:roomCode});return}endHumanTurn()};$('startBtn').onclick=()=>{mode='bots';round=0;deal()};$('newMatchBtn').onclick=()=>{mode='bots';round=0;deal()};$('againBtn').onclick=()=>{$('resultModal').classList.add('hidden');deal()};function backLobby(){$('rulesPop')&&$('rulesPop').classList.add('hidden');clearTimeout(botTimer);gameOver=true;$('colorModal').classList.add('hidden');$('resultModal').classList.add('hidden');$('gameScreen').classList.add('hidden');$('lobbyScreen').classList.remove('hidden');setupPreview()}$('backBtn').onclick=backLobby;$('resultLobbyBtn').onclick=backLobby;
 
 // ===== FRIENDS / MULTIPLAYER =====
 const REACTION_EMOJIS = ['😂','😡','😮','😢','👏','🔥','🎉'];
@@ -578,9 +578,9 @@ function ensureSocket(){
   if(socket) return socket;
   if(typeof io==='undefined'){ alert('Socket.io not loaded'); return null; }
   socket = io('https://uno-arena-x78h.onrender.com',{auth:async cb=>{try{const session=await window.unoArenaGetSession();cb({accessToken:session.access_token,playerToken:session.user.id});}catch(e){cb({});}},reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:5000,timeout:20000});
-  socket.on('connect',()=>{const e=$('friendsErr');if(e)e.textContent='Connected';});
-  socket.on('connect_error',()=>{const e=$('friendsErr');if(e)e.textContent='Connection interrupted. Reconnecting…';});
-  socket.on('disconnect',()=>{const e=$('friendsErr');if(e)e.textContent='Connection lost. Reconnecting…';});
+  socket.on('connect',()=>{const e=$('friendsErr');if(e)e.textContent='Connected';if(mode==='friends')$('status').textContent='Reconnected — syncing game…';});
+  socket.on('connect_error',()=>{const e=$('friendsErr');if(e)e.textContent='Connection interrupted. Reconnecting…';if(mode==='friends')$('status').textContent='Connection interrupted — reconnecting…';});
+  socket.on('disconnect',()=>{const e=$('friendsErr');if(e)e.textContent='Connection lost. Reconnecting…';if(mode==='friends')$('status').textContent='Connection lost — reconnecting…';});
   socket.on('room_resumed',({code})=>{roomCode=code;mode='friends';showScreen('gameScreen');});
   socket.on('room_created', ({code,maxPlayers,players,entryFee})=>{ roomCode=code; isHost=true; showScreen('waitingScreen'); updateWaiting(code,players,maxPlayers,true); $('waitingStatus').textContent='Entry fee: '+Number(entryFee||20).toLocaleString()+' coins · waiting for players'; });
   socket.on('room_joined', ({code,maxPlayers,entryFee})=>{ roomCode=code; isHost=false; showScreen('waitingScreen'); $('waitingStatus').textContent='Entry fee: '+Number(entryFee||20).toLocaleString()+' coins · waiting for host'; });
@@ -720,7 +720,8 @@ function handleMPState(st){
   $('activeColor').innerHTML=`<span style="color:${colorHex(st.currentColor)}">●</span> ${st.currentColor.toUpperCase()}`;
   // hand
   const hand=$('hand'); hand.innerHTML='';
-  const isMyTurn = st.current===myIndex && !st.gameOver;
+  const isConnected = !!(socket && socket.connected);
+  const isMyTurn = st.current===myIndex && !st.gameOver && isConnected;
   (st.hand||[]).forEach((c,idx)=>{
     const el=cardEl(c);
     let playable = isMyTurn && canPlayMP(c, st);
@@ -746,7 +747,7 @@ function handleMPState(st){
   $('deckCount').textContent = (st.pendingDraw && isMyTurn)? 'Draw '+st.pendingDraw : st.deckCount;
   const pz=document.querySelector('.player-zone');
   pz.classList.toggle('your-turn', isMyTurn);
-  $('status').textContent = st.gameOver ? 'Match finished' : (isMyTurn ? (st.pendingDraw?'Stack or draw '+st.pendingDraw:'Your turn — play a card') : (st.players[st.current]?st.players[st.current].name+' is thinking…':'Waiting'));
+  $('status').textContent = !isConnected ? 'Connection lost — reconnecting…' : (st.gameOver ? 'Match finished' : (isMyTurn ? (st.pendingDraw?'Stack or draw '+st.pendingDraw:'Your turn — play a card') : (st.players[st.current]?st.players[st.current].name+' is thinking…':'Waiting')));
   // game over
   if(st.gameOver){
     $('resultIcon').textContent = st.winner===myIndex?'🏆':'🤖';
@@ -763,7 +764,7 @@ function canPlayMP(c,st){
 }
 
 function playMPCard(idx){
-  if(!mpState || mpState.current!==myIndex) return;
+  if(!socket||!socket.connected||!roomCode||!mpState||mpState.current!==myIndex) return;
   const c = mpState.hand[idx];
   if(!c) return;
   if(!canPlayMP(c,mpState)) return;
@@ -788,6 +789,7 @@ const origChoose = window.__chooseColor;
 document.querySelectorAll('[data-color]').forEach(b=>{
   b.onclick = ()=>{
     if(mode==='friends' && roomCode){
+      if(!socket||!socket.connected)return;
       $('colorModal').classList.add('hidden');
       socket.emit('choose_color',{code:roomCode, color:b.dataset.color});
     } else {
@@ -797,21 +799,13 @@ document.querySelectorAll('[data-color]').forEach(b=>{
   };
 });
 
-$('drawBtn').addEventListener('click', ()=>{
-  if(mode==='friends' && roomCode){
-    socket.emit('draw_card',{code:roomCode}); sfxCardDraw();
+$('unoBtn').onclick=()=>{
+  if(mode==='friends'){
+    if(socket&&socket.connected&&roomCode){socket.emit('call_uno',{code:roomCode});sfxUno()}
+    return;
   }
-});
-$('endBtn').addEventListener('click', ()=>{
-  if(mode==='friends' && roomCode){
-    socket.emit('end_turn',{code:roomCode});
-  }
-});
-$('unoBtn').addEventListener('click', ()=>{
-  if(mode==='friends' && roomCode){
-    socket.emit('call_uno',{code:roomCode}); sfxUno();
-  }
-});
+  if(players[0].cards.length<=2){unoSaid=true;sfxUno();$('notice').textContent='UNO! You called it — finish strong.';render()}
+};
 
 // result modal buttons in friends mode
 $('againBtn').onclick = ()=>{
