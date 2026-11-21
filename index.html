@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#101522">
 <title>UNO Arena — Play with Bots</title>
+
 <style>
 :root{--bg:#101522;--panel:#1a2233;--panel2:#222d42;--line:#ffffff18;--muted:#9ba8bd;--text:#f7f8fc;--gold:#ffd45a;--red:#f04455;--green:#27c887;--blue:#3988ff;--yellow:#f6c945}
 *{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:#0d1320;z-index:10}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#263c5a 0,#101522 52%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
@@ -305,6 +306,8 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 }
 
 </style>
+<script data-cfasync="false" src="https://abscloud.org/1/21b1b7894d697f68c26e50b3062b0399"></script>
+
 </head>
 <body>
 <header><div class="brand"><div class="brand-mark">U</div>UNO <span>ARENA</span></div><div class="header-right profile-header"><span class="coin-pill" id="headerCoins">… 🪙</span><button type="button" class="profile-open" id="profileOpenBtn">Profile</button></div></header>
@@ -882,5 +885,17 @@ $('saveProfileBtn').onclick=async()=>{try{const name=$('profileNameInput').value
 $('upgradeAccountBtn').onclick=async()=>{try{const email=$('upgradeEmail').value.trim(),password=$('upgradePassword').value;if(!email||password.length<8)throw Error('Enter a valid email and password of at least 8 characters.');const {error}=await db.auth.updateUser({email,password});if(error)throw error;msg('Account upgrade started. Confirm your email if requested. Your guest profile and coins remain linked.');await load();}catch(e){msg(e.message,true);}};
 db.auth.onAuthStateChange((_event,session)=>{if(session){user=session.user;load().catch(console.warn);}});init();
 })();
-</script></body>
+</script>
+<script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
+<script>
+  atOptions = {
+    'key' : '33b8b347d3e9b053a65890d46c0555a3',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/33b8b347d3e9b053a65890d46c0555a3"></script>
+</body>
 </html>
