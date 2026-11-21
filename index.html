@@ -305,6 +305,17 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
   #profileScreen .profile-page{padding-left:3px;padding-right:3px}
 }
 
+/* ===== AD SLOTS (responsive, all devices) ===== */
+.ad-slot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:100%;margin:18px auto 0;padding:6px 0 0;overflow:hidden;min-height:64px;text-align:center}
+.ad-slot .ad-label{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);opacity:.7;margin-bottom:4px}
+.ad-slot iframe{max-width:100%}
+.ad-lobby{max-width:520px}
+#gameScreen .ad-slot{margin:0;padding:2px 0 0;min-height:0;flex-shrink:0}
+#gameScreen .ad-slot .ad-label{margin-bottom:0;font-size:9px}
+#profileScreen .ad-slot{max-width:760px;margin:22px auto 0}
+@media(max-width:520px){.ad-slot{zoom:.74}}
+@media(max-width:400px){.ad-slot{zoom:.62}}
+@media(max-height:500px){#gameScreen .ad-slot{display:none}}
 </style>
 <script data-cfasync="false" src="https://abscloud.org/1/21b1b7894d697f68c26e50b3062b0399"></script>
 
@@ -375,6 +386,20 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
    <button type="button" class="close-rules" id="closeRulesBtn" aria-label="Close how to play">Got it</button>
   </div>
  </div>
+<div class="ad-slot ad-lobby" role="complementary" aria-label="Advertisement">
+<span class="ad-label">Advertisement</span>
+<script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
+<script>
+  atOptions = {
+    'key' : '33b8b347d3e9b053a65890d46c0555a3',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/33b8b347d3e9b053a65890d46c0555a3"></script>
+</div>
 </section>
 <section id="profileScreen" class="screen hidden"><div class="profile-page">
 <button type="button" class="secondary profile-back" id="profileBackBtn">← Back to lobby</button><h1 class="home-title" style="text-align:left;margin:8px 0">Player <span>Profile</span></h1>
@@ -382,7 +407,21 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 <div class="profile-stats"><div class="profile-stat"><small>Matches played</small><strong id="statMatches">0</strong></div><div class="profile-stat"><small>Wins</small><strong id="statWins">0</strong></div><div class="profile-stat"><small>Losses</small><strong id="statLosses">0</strong></div><div class="profile-stat"><small>Win rate</small><strong id="statWinRate">0%</strong></div><div class="profile-stat"><small>Current streak</small><strong id="statCurrentStreak">0</strong></div><div class="profile-stat"><small>Best streak</small><strong id="statBestStreak">0</strong></div></div>
 <div class="profile-section"><h3 style="margin:0 0 8px">Account</h3><label class="profile-muted" for="profileNameInput">Display name</label><input class="profile-input" id="profileNameInput" maxlength="16" placeholder="Your player name"><button type="button" class="secondary" id="saveProfileBtn" style="width:100%">Save profile</button><div id="profileMessage" class="profile-muted" style="margin-top:8px">Guest account is saved on this device. Add an email and password to recover it on another device.</div><div id="upgradeFields"><input class="profile-input" id="upgradeEmail" type="email" autocomplete="email" placeholder="Email address"><input class="profile-input" id="upgradePassword" type="password" autocomplete="new-password" placeholder="Create password (8+ characters)"><button type="button" class="primary" id="upgradeAccountBtn" style="width:100%">Secure my account</button></div></div>
 <div class="profile-section"><h3 style="margin:0 0 8px">Match history</h3><div id="matchHistory" class="profile-muted">Loading matches…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Coin activity</h3><div id="coinHistory" class="profile-muted">Loading transactions…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="profileLeaderboard" class="profile-muted">Loading rankings…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Earn coins</h3><p class="profile-muted">Watch a verified rewarded ad to earn 50 virtual coins. No cash value, purchases or withdrawals.</p><button type="button" class="secondary" id="watchAdBtn" style="width:100%" disabled>Rewarded ads coming soon</button></div>
-</div></section><section id="friendsScreen" class="screen hidden">
+</div><div class="ad-slot ad-profile" role="complementary" aria-label="Advertisement">
+<span class="ad-label">Advertisement</span>
+<script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
+<script>
+  atOptions = {
+    'key' : '33b8b347d3e9b053a65890d46c0555a3',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/33b8b347d3e9b053a65890d46c0555a3"></script>
+</div>
+</section><section id="friendsScreen" class="screen hidden">
  <div class="lobby home">
   <h1 class="home-title">Play with <span>Friends</span><span class="home-title-sub">Create or join a room</span></h1>
   <div style="margin-top:18px;text-align:left">
@@ -434,6 +473,20 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
   <div class="hand" id="hand"></div>
   <div class="game-actions"><button type="button" class="action-btn gold" id="unoBtn" disabled>UNO!</button><button type="button" class="action-btn" id="endBtn" disabled>End turn</button><button type="button" class="action-btn" id="newMatchBtn">New match</button></div>
   <div class="reaction-bar" id="reactionBar" style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px"></div>
+<div class="ad-slot ad-game" role="complementary" aria-label="Advertisement">
+<span class="ad-label">Advertisement</span>
+<script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
+<script>
+  atOptions = {
+    'key' : '33b8b347d3e9b053a65890d46c0555a3',
+    'format' : 'iframe',
+    'height' : 60,
+    'width' : 468,
+    'params' : {}
+  };
+</script>
+<script src="https://bauval.org/22/33b8b347d3e9b053a65890d46c0555a3"></script>
+</div>
  </section>
  <div class="notice" id="notice">Match by color or number. Wild cards can be played anytime.</div>
 </section>
@@ -886,16 +939,5 @@ $('upgradeAccountBtn').onclick=async()=>{try{const email=$('upgradeEmail').value
 db.auth.onAuthStateChange((_event,session)=>{if(session){user=session.user;load().catch(console.warn);}});init();
 })();
 </script>
-<script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
-<script>
-  atOptions = {
-    'key' : '33b8b347d3e9b053a65890d46c0555a3',
-    'format' : 'iframe',
-    'height' : 60,
-    'width' : 468,
-    'params' : {}
-  };
-</script>
-<script src="https://bauval.org/22/33b8b347d3e9b053a65890d46c0555a3"></script>
 </body>
 </html>
