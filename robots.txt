@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://uno-arena-x78h.onrender.com/sitemap.xml
