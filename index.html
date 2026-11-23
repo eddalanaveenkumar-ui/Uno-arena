@@ -1121,7 +1121,7 @@ async function openRewardedAd(){
     adScript.setAttribute('data-cfasync','false');
     adScript.src=AD_SCRIPT_SRC;
     adScript.onload=()=>{adLoaded=true;adSetStatus('Keep this tab open until the timer finishes.');adUpdateClaim();};
-    adScript.onerror=()=>{adSetStatus('The ad could not load. Check your connection and try again.',true);};
+    adScript.onerror=()=>{adSetStatus('The ad failed to load. Check your connection, disable any ad blocker, then try again.',true);adUpdateClaim();};
     document.body.appendChild(adScript);
     adTimer=setInterval(()=>{
       if(adPaused){adSetStatus('Timer paused: return to this tab to keep watching.',true);return;}
@@ -1137,9 +1137,17 @@ async function openRewardedAd(){
     await refreshAdStatus();
   }
 }
+const AD_NOT_SETUP=/could not find the function|function .* does not exist|PGRST202|404/i;
+function adErrorText(e){
+  const t=(e&&(e.message||e.details||e.hint))||'';
+  if(AD_NOT_SETUP.test(t)||e?.code==='PGRST202'||e?.code==='42883')return 'Rewarded ads are not set up on the server yet. Run the Supabase rewarded-ads migrations, then reload.';
+  return t||'Something went wrong with the ad.';
+}
 function msgAd(e){
-  const t=e.message||'';
-  msg(/daily_limit_reached/.test(t)?'Daily limit reached: 5 rewarded ads per day.':/cooldown_active/.test(t)?'Please wait a moment before watching another ad.':/ad_not_finished/.test(t)?'Keep watching until the timer finishes.':t||'Ad could not be completed.',true);
+  const text=adErrorText(e);
+  if(adModalOpen())adSetStatus(text,true);
+  $('cmStatus').textContent=text;
+  msg(text,true);
 }
 $('watchAdBtn').onclick=openRewardedAd;
 $('coinAddBtn').onclick=()=>{$('coinsModal').classList.remove('hidden');refreshAdStatus().catch(()=>{});};
@@ -1185,7 +1193,7 @@ async function refreshAdStatus(){
   }catch(e){
     console.warn('Ad status',e);
     b.textContent='Rewarded ads unavailable';b.disabled=true;
-    $('cmStatus').textContent='Rewarded ads are unavailable right now.';
+    $('cmStatus').textContent=adErrorText(e);
     $('cmWatchBtn').disabled=true;
   }
 }
