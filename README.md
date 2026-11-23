@@ -13,4 +13,4 @@ Then open http://localhost:3000
 Node.js + Express + Socket.IO server in `server.js`. Deploy manually (do not use Vercel).
 
 ## Database
-Run `supabase/migrations/20261121000000_rewarded_ads.sql` in the Supabase SQL editor to enable rewarded ads (20 coins, 5 per day).
+Run `supabase/migrations/20261121000000_rewarded_ads.sql`, then `supabase/migrations/20261122000000_rewarded_ads_v2.sql`, in the Supabase SQL editor to enable rewarded ads (20 coins, 5 per day, 60 s cooldown, 15 s minimum watch).

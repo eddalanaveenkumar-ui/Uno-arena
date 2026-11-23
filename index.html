@@ -340,11 +340,25 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 .auth-tabs button.active{color:#fff;border-color:var(--gold);background:#3a3426}
 #authForm{display:grid;gap:10px;text-align:left}
 .lb-card{max-width:520px;margin:18px auto 0;padding:18px 20px;background:linear-gradient(160deg,#1e2941,#141b2a);border:1px solid var(--line);border-radius:22px;text-align:left}
+/* ===== REWARDED AD MODAL ===== */
+.ad-modal{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;padding:18px;background:#05080fcc;backdrop-filter:blur(4px)}
+.ad-modal-card{width:100%;max-width:380px;background:linear-gradient(160deg,#1e2941,#141b2a);border:1px solid var(--line);border-radius:24px;padding:24px;text-align:center;box-shadow:0 26px 70px #0008}
+.ad-modal-card h3{margin:0 0 6px;font-size:20px}
+.ad-modal-timer{font-size:44px;font-weight:950;color:var(--gold);margin:14px 0}
+.ad-modal-timer small{font-size:16px;color:var(--muted)}
 </style>
 
-<script data-cfasync="false" src="https://abscloud.org/1/21b1b7894d697f68c26e50b3062b0399"></script>
 </head>
 <body>
+<div id="adModal" class="ad-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
+ <div class="ad-modal-card">
+  <h3 id="adModalTitle">Watch to earn 20 coins</h3>
+  <p id="adModalStatus" class="profile-muted">Loading ad…</p>
+  <div class="ad-modal-timer"><span id="adModalCount">15</span><small>s</small></div>
+  <button type="button" class="primary" id="adClaimBtn" disabled style="width:100%">Claim 20 Coins</button>
+  <button type="button" class="secondary" id="adCloseBtn" style="width:100%;margin-top:8px">Cancel</button>
+ </div>
+</div>
 <div id="appLoader" class="app-loader" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><div>Loading UNO Arena…</div></div>
 <header><div class="brand"><div class="brand-mark">U</div>UNO <span>ARENA</span></div><div class="header-right profile-header"><span class="coin-pill" id="headerCoins">… 🪙</span><button type="button" class="profile-open" id="profileOpenBtn">Profile</button></div></header>
 <noscript><p>UNO Arena is a free online UNO card game. Enable JavaScript to play against bots or with friends in real-time multiplayer.</p></noscript>
@@ -447,7 +461,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 <div class="profile-hero"><div style="display:flex;align-items:center;gap:14px"><div id="profileAvatar" style="font-size:38px;background:#27364b;border-radius:16px;padding:10px">😎</div><div style="min-width:0"><div id="profileDisplayName" style="font-size:20px;font-weight:900">Loading player…</div><div id="profilePlayerId" class="profile-muted">Connecting account</div><div id="profileRank" style="margin-top:7px;color:#f7d36b;font-weight:850">Rank —</div></div></div><div style="display:flex;align-items:end;justify-content:space-between;margin-top:20px"><div><div class="profile-muted">Coin wallet</div><div id="profileBalance" style="font-size:34px;font-weight:950;color:#78e1ad">— 🪙</div></div><div class="profile-muted" id="profileLevel">Level —</div></div></div>
 <div class="profile-stats"><div class="profile-stat"><small>Matches played</small><strong id="statMatches">0</strong></div><div class="profile-stat"><small>Wins</small><strong id="statWins">0</strong></div><div class="profile-stat"><small>Losses</small><strong id="statLosses">0</strong></div><div class="profile-stat"><small>Win rate</small><strong id="statWinRate">0%</strong></div><div class="profile-stat"><small>Current streak</small><strong id="statCurrentStreak">0</strong></div><div class="profile-stat"><small>Best streak</small><strong id="statBestStreak">0</strong></div></div>
 <div class="profile-section"><h3 style="margin:0 0 8px">Account</h3><label class="profile-muted" for="profileNameInput">Display name</label><input class="profile-input" id="profileNameInput" maxlength="16" placeholder="Your player name"><button type="button" class="secondary" id="saveProfileBtn" style="width:100%">Save profile</button><button type="button" class="secondary" id="signOutBtn" style="width:100%;margin-bottom:10px">Sign out</button><div id="profileMessage" class="profile-muted" style="margin-top:8px">Guest account is saved on this device. Add an email and password to recover it on another device.</div><div id="upgradeFields"><input class="profile-input" id="upgradeEmail" type="email" autocomplete="email" placeholder="Email address"><input class="profile-input" id="upgradePassword" type="password" autocomplete="new-password" placeholder="Create password (8+ characters)"><button type="button" class="primary" id="upgradeAccountBtn" style="width:100%">Secure my account</button></div></div>
-<div class="profile-section"><h3 style="margin:0 0 8px">Match history</h3><div id="matchHistory" class="profile-muted">Loading matches…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Coin activity</h3><div id="coinHistory" class="profile-muted">Loading transactions…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="profileLeaderboard" class="profile-muted">Loading rankings…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Earn coins</h3><p class="profile-muted">Watch a rewarded ad to earn 20 coins. Up to 5 ads per day. Virtual coins only, no cash value.</p><button type="button" class="secondary" id="watchAdBtn" style="width:100%" disabled>Checking ad availability…</button><div id="rewardAdBox" class="hidden profile-muted" style="margin-top:10px;text-align:center">Watch the ad · <span id="rewardAdCount">15</span>s</div></div>
+<div class="profile-section"><h3 style="margin:0 0 8px">Match history</h3><div id="matchHistory" class="profile-muted">Loading matches…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Coin activity</h3><div id="coinHistory" class="profile-muted">Loading transactions…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="profileLeaderboard" class="profile-muted">Loading rankings…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Earn coins</h3><p class="profile-muted">Watch an ad to earn 20 coins. Up to 5 per day, with a short cooldown between ads. Virtual coins only, no cash value.</p><button type="button" class="secondary" id="watchAdBtn" style="width:100%" disabled>Checking ad availability…</button></div>
 </div><div class="ad-slot ad-profile" role="complementary" aria-label="Advertisement">
 <span class="ad-label">Advertisement</span>
 <script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
@@ -1031,38 +1045,112 @@ db.auth.onAuthStateChange((event,session)=>{
   if(session){user=session.user;load().catch(console.warn);}
 });
 
-// PLACEHOLDER for the rewarded-ad network. Replace the body with the network's SDK and
-// resolve(true) only when the network reports the ad was fully watched.
-function playRewardedAd(seconds){
-  return new Promise(resolve=>{
-    let left=seconds;$('rewardAdCount').textContent=left;
-    const t=setInterval(()=>{left--;$('rewardAdCount').textContent=Math.max(left,0);if(left<=0){clearInterval(t);resolve(true);}},1000);
+// ===== Rewarded ad: Social Bar loaded on demand, 15s watch timer, server-verified claim =====
+const AD_SCRIPT_SRC='https://abscloud.org/1/21b1b7894d697f68c26e50b3062b0399';
+const AD_WATCH_SECONDS=15;
+let adSession=null,adTimer=null,adLeft=AD_WATCH_SECONDS,adPaused=false,adScript=null,adLoaded=false,adObserver=null,adAddedNodes=[];
+
+function adModalOpen(){return !$('adModal').classList.contains('hidden');}
+function adSetStatus(t,bad=false){$('adModalStatus').textContent=t;$('adModalStatus').style.color=bad?'#ff8a95':'#9eb0c8';}
+function adUpdateClaim(){const ready=adLoaded&&adLeft<=0&&adSession;$('adClaimBtn').disabled=!ready;}
+
+function adStartObserver(){
+  // Track any element the ad network appends to <body> so it can be removed later
+  adObserver=new MutationObserver(list=>{
+    for(const m of list)for(const n of m.addedNodes){
+      if(n.nodeType===1&&n.parentNode===document.body&&!$('adModal').contains(n)&&n!==adScript)adAddedNodes.push(n);
+    }
   });
+  adObserver.observe(document.body,{childList:true});
 }
+function adCleanup(){
+  clearInterval(adTimer);adTimer=null;
+  if(adObserver){adObserver.disconnect();adObserver=null;}
+  // Remove the injected Social Bar script and floating ad nodes
+  if(adScript){adScript.remove();adScript=null;}
+  adAddedNodes.forEach(n=>{if(n.isConnected&&!n.id&&n.tagName!=='MAIN'&&n.tagName!=='HEADER'&&n.tagName!=='SCRIPT'&&n.tagName!=='STYLE')n.remove();});
+  adAddedNodes=[];
+  // Also remove any Social Bar iframes that ended up outside the modal
+  document.querySelectorAll('body > iframe').forEach(f=>{if(!f.id)f.remove();});
+  adSession=null;adLoaded=false;adLeft=AD_WATCH_SECONDS;adPaused=false;
+  $('adModal').classList.add('hidden');
+  $('adClaimBtn').disabled=true;
+}
+function adCloseAndCancel(){
+  if(!adModalOpen())return;
+  adCleanup();adBusy=false;refreshAdStatus().catch(()=>{});
+}
+document.addEventListener('visibilitychange',()=>{adPaused=document.hidden;});
+
+async function openRewardedAd(){
+  if(adBusy)return;adBusy=true;
+  const b=$('watchAdBtn');b.disabled=true;
+  try{
+    const {data,error}=await db.rpc('start_rewarded_ad');
+    if(error)throw error;
+    adSession=data;
+    $('adModal').classList.remove('hidden');
+    adLeft=AD_WATCH_SECONDS;adPaused=document.hidden;adLoaded=false;
+    $('adModalCount').textContent=adLeft;
+    adSetStatus('Loading ad…');adUpdateClaim();
+    adStartObserver();
+    adScript=document.createElement('script');
+    adScript.setAttribute('data-cfasync','false');
+    adScript.src=AD_SCRIPT_SRC;
+    adScript.onload=()=>{adLoaded=true;adSetStatus('Keep this tab open until the timer finishes.');adUpdateClaim();};
+    adScript.onerror=()=>{adSetStatus('The ad could not load. Check your connection and try again.',true);};
+    document.body.appendChild(adScript);
+    adTimer=setInterval(()=>{
+      if(adPaused){adSetStatus('Timer paused: return to this tab to keep watching.',true);return;}
+      if(!adLoaded)return;
+      if(adLeft>0)adLeft--;
+      $('adModalCount').textContent=adLeft;
+      if(adLeft<=0){clearInterval(adTimer);adTimer=null;adSetStatus('Done! Tap Claim to get your 20 coins.');}
+      adUpdateClaim();
+    },1000);
+  }catch(e){
+    adBusy=false;
+    msgAd(e);
+    await refreshAdStatus();
+  }
+}
+function msgAd(e){
+  const t=e.message||'';
+  msg(/daily_limit_reached/.test(t)?'Daily limit reached: 5 rewarded ads per day.':/cooldown_active/.test(t)?'Please wait a moment before watching another ad.':/ad_not_finished/.test(t)?'Keep watching until the timer finishes.':t||'Ad could not be completed.',true);
+}
+$('watchAdBtn').onclick=openRewardedAd;
+$('adCloseBtn').onclick=()=>{adCloseAndCancel();};
+$('adClaimBtn').onclick=async()=>{
+  if(!adSession)return;
+  const b=$('adClaimBtn');b.disabled=true;
+  try{
+    const {data,error}=await db.rpc('claim_rewarded_ad',{p_session:adSession});
+    if(error)throw error;
+    adCleanup();adBusy=false;
+    msg('+20 coins added! New balance: '+Number(data).toLocaleString()+' 🪙');
+    await load();
+  }catch(e){
+    adSetStatus(e.message||'Claim failed.',true);
+    adUpdateClaim();
+  }finally{
+    if(!adModalOpen()){adBusy=false;}
+    await refreshAdStatus();
+  }
+};
+
 async function refreshAdStatus(){
   const b=$('watchAdBtn');
   try{
     const {data,error}=await db.rpc('rewarded_ad_status');
     if(error)throw error;
     const r=Array.isArray(data)?data[0]:data;
-    const left=Number(r?.remaining??0);
-    b.textContent=left>0?'Watch ad · +20 coins ('+left+' left today)':'Daily limit reached · back tomorrow';
-    b.disabled=adBusy||left<=0;
+    const left=Number(r?.remaining??0),cd=Number(r?.cooldown_seconds??0);
+    if(left<=0)b.textContent='Daily limit reached · back tomorrow';
+    else if(cd>0)b.textContent='Next ad in '+cd+'s';
+    else b.textContent='Watch ad · +20 coins ('+left+' left today)';
+    b.disabled=adBusy||left<=0||cd>0||adModalOpen();
   }catch(e){console.warn('Ad status',e);b.textContent='Rewarded ads unavailable';b.disabled=true;}
 }
-$('watchAdBtn').onclick=async()=>{
-  if(adBusy)return;adBusy=true;
-  const b=$('watchAdBtn');b.disabled=true;$('rewardAdBox').classList.remove('hidden');
-  try{
-    const shown=await playRewardedAd(15);
-    if(!shown)throw Error('The ad did not finish. No coins were added.');
-    const {data,error}=await db.rpc('claim_rewarded_ad');
-    if(error)throw error;
-    msg('+20 coins added! New balance: '+Number(data).toLocaleString()+' 🪙');
-    await load();
-  }catch(e){msg(/daily_limit_reached/.test(e.message)?'Daily limit reached: 5 rewarded ads per day.':e.message,true);}
-  finally{adBusy=false;$('rewardAdBox').classList.add('hidden');await refreshAdStatus();}
-};
 
 async function init(){
   try{
