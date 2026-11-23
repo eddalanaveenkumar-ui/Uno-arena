@@ -342,7 +342,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 #authForm{display:grid;gap:10px;text-align:left}
 .lb-card{max-width:520px;margin:18px auto 0;padding:18px 20px;background:linear-gradient(160deg,#1e2941,#141b2a);border:1px solid var(--line);border-radius:22px;text-align:left}
 /* ===== REWARDED AD MODAL ===== */
-.ad-modal{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;padding:18px;background:#05080fcc;backdrop-filter:blur(4px)}
+.ad-modal{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:18px;background:#05080fcc;backdrop-filter:blur(4px)}
 .ad-modal-card{width:100%;max-width:380px;background:linear-gradient(160deg,#1e2941,#141b2a);border:1px solid var(--line);border-radius:24px;padding:24px;text-align:center;box-shadow:0 26px 70px #0008}
 .ad-modal-card h3{margin:0 0 6px;font-size:20px}
 .ad-modal-timer{font-size:44px;font-weight:950;color:var(--gold);margin:14px 0}
@@ -351,6 +351,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 .coin-add{width:32px;height:32px;border-radius:50%;background:linear-gradient(140deg,#7be0b0,#27c887);color:#06291c;font-weight:1000;font-size:20px;line-height:1;display:grid;place-items:center;flex-shrink:0;box-shadow:0 4px 12px #27c88744;padding:0}
 .coin-add:hover{filter:brightness(1.08)}
 #coinsModal{z-index:140}
+#adModal{z-index:2147483000}
 .ad-modal-card.cm-card{max-height:calc(100vh - 36px);overflow:auto}
 .cm-count{font-size:34px;font-weight:950;color:#fff;margin-top:8px}
 .cm-progress{height:10px;border-radius:999px;background:#121a29;border:1px solid var(--line);overflow:hidden;margin:10px 0 6px}
@@ -1083,10 +1084,35 @@ function adStartObserver(){
     for(const m of list)for(const n of m.addedNodes){
       if(n.nodeType===1&&n.parentNode===document.body&&!$('adModal').contains(n)&&n!==adScript)adAddedNodes.push(n);
     }
+    // Keep the reward window last in the page so ad elements can't stack above it
+    if(adModalOpen()&&document.body.lastElementChild!==$('adModal'))document.body.appendChild($('adModal'));
   });
   adObserver.observe(document.body,{childList:true});
 }
+// While the reward window is open, block clicks outside it and block new windows,
+// so an ad overlay can't send the player to another site.
+const adOriginalOpen=window.open;
+function adClickGuard(e){
+  if(!adModalOpen())return;
+  if($('adModal').contains(e.target))return;
+  e.preventDefault();e.stopPropagation();
+}
+function adGuardOn(){
+  window.open=()=>null;
+  window.addEventListener('click',adClickGuard,true);
+  window.addEventListener('auxclick',adClickGuard,true);
+  window.addEventListener('pointerdown',adClickGuard,true);
+  // Keep the reward window as the last (top-most) element in the page
+  document.body.appendChild($('adModal'));
+}
+function adGuardOff(){
+  window.open=adOriginalOpen;
+  window.removeEventListener('click',adClickGuard,true);
+  window.removeEventListener('auxclick',adClickGuard,true);
+  window.removeEventListener('pointerdown',adClickGuard,true);
+}
 function adCleanup(){
+  adGuardOff();
   clearInterval(adTimer);adTimer=null;
   if(adObserver){adObserver.disconnect();adObserver=null;}
   // Remove the injected Social Bar script and floating ad nodes
@@ -1113,6 +1139,7 @@ async function openRewardedAd(){
     if(error)throw error;
     adSession=data;
     $('adModal').classList.remove('hidden');
+    adGuardOn();
     adLeft=AD_WATCH_SECONDS;adPaused=document.hidden;adLoaded=false;
     $('adModalCount').textContent=adLeft;
     adSetStatus('Loading ad…');adUpdateClaim();
@@ -1159,9 +1186,10 @@ $('coinAddBtn').onclick=()=>{$('coinsModal').classList.remove('hidden');refreshA
 $('cmCloseBtn').onclick=()=>{$('coinsModal').classList.add('hidden');};
 $('cmWatchBtn').onclick=()=>{if(!$('watchAdBtn').disabled)openRewardedAd();};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!adModalOpen())$('coinsModal').classList.add('hidden');});
-$('adCloseBtn').onclick=()=>{adCloseAndCancel();};
-$('adClaimBtn').onclick=async()=>{
-  if(!adSession)return;
+$('adCloseBtn').onclick=e=>{e.preventDefault();e.stopPropagation();adCloseAndCancel();};
+$('adClaimBtn').onclick=async e=>{
+  e.preventDefault();e.stopPropagation();
+  if(!adSession||$('adClaimBtn').disabled)return;
   const b=$('adClaimBtn');b.disabled=true;
   try{
     const {data,error}=await db.rpc('claim_rewarded_ad',{p_session:adSession});
