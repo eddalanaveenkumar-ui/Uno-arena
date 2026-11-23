@@ -365,7 +365,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 <div id="adModal" class="ad-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adModalTitle">
  <div class="ad-modal-card">
   <h3 id="adModalTitle">Watch to earn 20 coins</h3>
-  <p id="adModalStatus" class="profile-muted">Loading ad…</p>
+  <p id="adModalStatus" class="profile-muted">Opening ad…</p>
   <div class="ad-modal-timer"><span id="adModalCount">15</span><small>s</small></div>
   <button type="button" class="primary" id="adClaimBtn" disabled style="width:100%">Claim 20 Coins</button>
   <button type="button" class="secondary" id="adCloseBtn" style="width:100%;margin-top:8px">Cancel</button>
@@ -1081,59 +1081,26 @@ db.auth.onAuthStateChange((event,session)=>{
   if(session){user=session.user;load().catch(console.warn);}
 });
 
-// ===== Rewarded ad: Social Bar loaded on demand, 15s watch timer, server-verified claim =====
-const AD_SCRIPT_SRC='https://abscloud.org/1/21b1b7894d697f68c26e50b3062b0399';
+// ===== Rewarded ad: Adsterra Smartlink opens in a new tab, 15s countdown here, then Claim =====
+// Paste your Adsterra Smartlink URL between the quotes below.
+const AD_SMARTLINK_URL='';
 const AD_WATCH_SECONDS=15;
-let adSession=null,adTimer=null,adLeft=AD_WATCH_SECONDS,adPaused=false,adScript=null,adLoaded=false,adObserver=null,adAddedNodes=[];
+let adSession=null,adTimer=null,adLeft=AD_WATCH_SECONDS,adEndsAt=0;
 
 function adModalOpen(){return !$('adModal').classList.contains('hidden');}
 function adSetStatus(t,bad=false){$('adModalStatus').textContent=t;$('adModalStatus').style.color=bad?'#ff8a95':'#9eb0c8';}
-function adUpdateClaim(){const ready=adLoaded&&adLeft<=0&&adSession;$('adClaimBtn').disabled=!ready;}
-
-function adStartObserver(){
-  // Track any element the ad network appends to <body> so it can be removed later
-  adObserver=new MutationObserver(list=>{
-    for(const m of list)for(const n of m.addedNodes){
-      if(n.nodeType===1&&n.parentNode===document.body&&!$('adModal').contains(n)&&n!==adScript)adAddedNodes.push(n);
-    }
-    // Keep the reward window last in the page so ad elements can't stack above it
-    if(adModalOpen()&&document.body.lastElementChild!==$('adModal'))document.body.appendChild($('adModal'));
-  });
-  adObserver.observe(document.body,{childList:true});
-}
-// While the reward window is open, block clicks outside it and block new windows,
-// so an ad overlay can't send the player to another site.
-const adOriginalOpen=window.open;
-function adClickGuard(e){
-  if(!adModalOpen())return;
-  if($('adModal').contains(e.target))return;
-  e.preventDefault();e.stopPropagation();
-}
-function adGuardOn(){
-  window.open=()=>null;
-  window.addEventListener('click',adClickGuard,true);
-  window.addEventListener('auxclick',adClickGuard,true);
-  window.addEventListener('pointerdown',adClickGuard,true);
-  // Keep the reward window as the last (top-most) element in the page
-  document.body.appendChild($('adModal'));
-}
-function adGuardOff(){
-  window.open=adOriginalOpen;
-  window.removeEventListener('click',adClickGuard,true);
-  window.removeEventListener('auxclick',adClickGuard,true);
-  window.removeEventListener('pointerdown',adClickGuard,true);
+function adUpdateClaim(){$('adClaimBtn').disabled=!(adSession&&adLeft<=0);}
+function adTick(){
+  // Based on the clock, so it stays correct while the player is in the ad tab
+  adLeft=Math.max(0,Math.ceil((adEndsAt-Date.now())/1000));
+  $('adModalCount').textContent=adLeft;
+  if(adLeft<=0){clearInterval(adTimer);adTimer=null;adSetStatus('Done! Tap Claim to get your 20 coins.');}
+  adUpdateClaim();
 }
 function adCleanup(){
-  adGuardOff();window.adModalOpenFlag=false;
   clearInterval(adTimer);adTimer=null;
-  if(adObserver){adObserver.disconnect();adObserver=null;}
-  // Remove the injected Social Bar script and floating ad nodes
-  if(adScript){adScript.remove();adScript=null;}
-  adAddedNodes=[];
   sweepForeignBodyNodes();
-  // The ad can finish loading a little after close; sweep again shortly after
-  [500,2000,5000].forEach(ms=>setTimeout(sweepForeignBodyNodes,ms));
-  adSession=null;adLoaded=false;adLeft=AD_WATCH_SECONDS;adPaused=false;
+  adSession=null;adLeft=AD_WATCH_SECONDS;adEndsAt=0;
   $('adModal').classList.add('hidden');
   $('adClaimBtn').disabled=true;
 }
@@ -1141,40 +1108,29 @@ function adCloseAndCancel(){
   if(!adModalOpen())return;
   adCleanup();adBusy=false;refreshAdStatus().catch(()=>{});
 }
-document.addEventListener('visibilitychange',()=>{adPaused=document.hidden;});
 
 async function openRewardedAd(){
-  if(adBusy)return;adBusy=true;
+  if(adBusy)return;
+  if(!AD_SMARTLINK_URL){msg('The ad link is not set up yet. Please try again later.',true);return;}
+  adBusy=true;
   const b=$('watchAdBtn');b.disabled=true;
+  // Open the tab right away inside the click, otherwise browsers block it as a pop-up
+  const tab=window.open('about:blank','_blank');
+  if(!tab){adBusy=false;msg('Pop-ups are blocked. Allow pop-ups for this site, then try again.',true);await refreshAdStatus();return;}
   try{
     const {data,error}=await db.rpc('start_rewarded_ad');
     if(error)throw error;
     adSession=data;
+    try{tab.opener=null;}catch(_){}
+    tab.location.href=AD_SMARTLINK_URL;
+    adEndsAt=Date.now()+AD_WATCH_SECONDS*1000;
     $('adModal').classList.remove('hidden');
-    window.adModalOpenFlag=true;
-    adGuardOn();
-    adLeft=AD_WATCH_SECONDS;adPaused=document.hidden;adLoaded=false;
-    $('adModalCount').textContent=adLeft;
-    adSetStatus('Loading ad…');adUpdateClaim();
-    adStartObserver();
-    adScript=document.createElement('script');
-    adScript.setAttribute('data-cfasync','false');
-    adScript.src=AD_SCRIPT_SRC;
-    adScript.onload=()=>{adLoaded=true;adSetStatus('Keep this tab open until the timer finishes.');adUpdateClaim();};
-    adScript.onerror=()=>{adSetStatus('The ad failed to load. Check your connection, disable any ad blocker, then try again.',true);adUpdateClaim();};
-    document.body.appendChild(adScript);
-    adTimer=setInterval(()=>{
-      if(adPaused){adSetStatus('Timer paused: return to this tab to keep watching.',true);return;}
-      if(!adLoaded)return;
-      if(adLeft>0)adLeft--;
-      $('adModalCount').textContent=adLeft;
-      if(adLeft<=0){clearInterval(adTimer);adTimer=null;adSetStatus('Done! Tap Claim to get your 20 coins.');}
-      adUpdateClaim();
-    },1000);
+    adSetStatus('Watch the ad in the new tab. When the timer ends, come back here and tap Claim.');
+    adTick();
+    adTimer=setInterval(adTick,500);
   }catch(e){
-    adBusy=false;
-    msgAd(e);
-    await refreshAdStatus();
+    try{tab.close();}catch(_){}
+    adBusy=false;msgAd(e);await refreshAdStatus();
   }
 }
 const AD_NOT_SETUP=/could not find the function|function .* does not exist|PGRST202|404/i;
@@ -1203,15 +1159,15 @@ $('adCloseBtn').onclick=e=>{e.preventDefault();e.stopPropagation();adCloseAndCan
 $('adClaimBtn').onclick=async e=>{
   e.preventDefault();e.stopPropagation();
   if(!adSession||$('adClaimBtn').disabled)return;
-  const b=$('adClaimBtn');b.disabled=true;
+  $('adClaimBtn').disabled=true;
   try{
     const {data,error}=await db.rpc('claim_rewarded_ad',{p_session:adSession});
     if(error)throw error;
     adCleanup();adBusy=false;
     msg('+20 coins added! New balance: '+Number(data).toLocaleString()+' 🪙');
     await load();
-  }catch(e){
-    adSetStatus(e.message||'Claim failed.',true);
+  }catch(err){
+    adSetStatus(adErrorText(err),true);
     adUpdateClaim();
   }finally{
     if(!adModalOpen()){adBusy=false;}
