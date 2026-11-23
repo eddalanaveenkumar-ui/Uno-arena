@@ -1141,6 +1141,11 @@ const AD_NOT_SETUP=/could not find the function|function .* does not exist|PGRST
 function adErrorText(e){
   const t=(e&&(e.message||e.details||e.hint))||'';
   if(AD_NOT_SETUP.test(t)||e?.code==='PGRST202'||e?.code==='42883')return 'Rewarded ads are not set up on the server yet. Run the Supabase rewarded-ads migrations, then reload.';
+  if(/daily_limit_reached/.test(t))return 'Daily limit reached: 5 rewarded ads per day.';
+  if(/cooldown_active/.test(t))return 'Please wait a moment before watching another ad.';
+  if(/ad_not_finished/.test(t))return 'Keep watching until the timer finishes.';
+  if(/session_used|session_expired/.test(t))return 'This ad session expired. Please watch a new ad.';
+  if(/not_authenticated/.test(t))return 'Please log in again to earn coins.';
   return t||'Something went wrong with the ad.';
 }
 function msgAd(e){
