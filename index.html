@@ -174,7 +174,8 @@ h1{font-size:clamp(32px,6vw,54px);line-height:1.02;letter-spacing:-2.5px;margin:
 .rules-list .mini-card.blue{background:linear-gradient(140deg,#55a9ff,#1749bd)}
 .rules-list .mini-card.wild{background:conic-gradient(#ed2637 0 25%,#f8d83b 0 50%,#18a85c 0 75%,#2674ed 0);color:#fff}
 .rules-pop .close-rules{margin-top:20px;align-self:center;background:#2a354a;color:#e8edf7;padding:12px 22px;border-radius:13px;font-weight:850;border:1px solid var(--line)}
-@media(max-width:560px){.header-right{display:none}header{height:62px}}
+@media(max-width:560px){header{height:62px}}
+@media(max-width:420px){.brand{font-size:18px;gap:8px}.brand-mark{width:30px;height:30px;font-size:15px}.coin-pill{font-size:11px;padding:6px 8px}.profile-open{padding:7px 9px;font-size:12px}.profile-header{gap:6px}}
 @media(max-width:420px){.home{padding:18px 15px;border-radius:24px}.count-icons{gap:6px}.count-cell .pc{width:22px;height:22px}.setup-tile{min-height:84px}.icon-btn{width:46px;height:46px}}
 
 /* ===== NO-SCROLL GAME LAYOUT ===== */
@@ -346,7 +347,16 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 .ad-modal-card h3{margin:0 0 6px;font-size:20px}
 .ad-modal-timer{font-size:44px;font-weight:950;color:var(--gold);margin:14px 0}
 .ad-modal-timer small{font-size:16px;color:var(--muted)}
-</style>
+/* ===== EARN COINS WINDOW ===== */
+.coin-add{width:32px;height:32px;border-radius:50%;background:linear-gradient(140deg,#7be0b0,#27c887);color:#06291c;font-weight:1000;font-size:20px;line-height:1;display:grid;place-items:center;flex-shrink:0;box-shadow:0 4px 12px #27c88744;padding:0}
+.coin-add:hover{filter:brightness(1.08)}
+#coinsModal{z-index:140}
+.ad-modal-card.cm-card{max-height:calc(100vh - 36px);overflow:auto}
+.cm-count{font-size:34px;font-weight:950;color:#fff;margin-top:8px}
+.cm-progress{height:10px;border-radius:999px;background:#121a29;border:1px solid var(--line);overflow:hidden;margin:10px 0 6px}
+.cm-progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,#27c887,#7be0b0);transition:width .4s}
+.cm-note{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 14px}
+
 
 </head>
 <body>
@@ -359,8 +369,20 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
   <button type="button" class="secondary" id="adCloseBtn" style="width:100%;margin-top:8px">Cancel</button>
  </div>
 </div>
+<div id="coinsModal" class="ad-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+ <div class="ad-modal-card cm-card">
+  <h3 id="cmTitle">Earn coins</h3>
+  <p class="cm-note">Watch a 15-second ad to earn 20 coins. You can watch up to 5 ads per day.</p>
+  <div class="profile-muted" style="font-size:12px;letter-spacing:1px;text-transform:uppercase">Ads watched today</div>
+  <div class="cm-count" id="cmCountWrap"><span id="cmCount">0/5</span></div>
+  <div class="cm-progress" aria-hidden="true"><span id="cmBar"></span></div>
+  <div class="cm-note" id="cmStatus">Loading…</div>
+  <button type="button" class="primary" id="cmWatchBtn" style="width:100%" disabled>▶ Watch ad · 15 sec</button>
+  <button type="button" class="secondary" id="cmCloseBtn" style="width:100%;margin-top:8px">Close</button>
+ </div>
+</div>
 <div id="appLoader" class="app-loader" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><div>Loading UNO Arena…</div></div>
-<header><div class="brand"><div class="brand-mark">U</div>UNO <span>ARENA</span></div><div class="header-right profile-header"><span class="coin-pill" id="headerCoins">… 🪙</span><button type="button" class="profile-open" id="profileOpenBtn">Profile</button></div></header>
+<header><div class="brand"><div class="brand-mark">U</div>UNO <span>ARENA</span></div><div class="header-right profile-header"><span class="coin-pill" id="headerCoins">… 🪙</span><button type="button" class="coin-add" id="coinAddBtn" aria-label="Earn more coins" title="Earn more coins">+</button><button type="button" class="profile-open" id="profileOpenBtn">Profile</button></div></header>
 <noscript><p>UNO Arena is a free online UNO card game. Enable JavaScript to play against bots or with friends in real-time multiplayer.</p></noscript>
 <main>
 <section id="authScreen" class="screen hidden">
@@ -1119,6 +1141,10 @@ function msgAd(e){
   msg(/daily_limit_reached/.test(t)?'Daily limit reached: 5 rewarded ads per day.':/cooldown_active/.test(t)?'Please wait a moment before watching another ad.':/ad_not_finished/.test(t)?'Keep watching until the timer finishes.':t||'Ad could not be completed.',true);
 }
 $('watchAdBtn').onclick=openRewardedAd;
+$('coinAddBtn').onclick=()=>{$('coinsModal').classList.remove('hidden');refreshAdStatus().catch(()=>{});};
+$('cmCloseBtn').onclick=()=>{$('coinsModal').classList.add('hidden');};
+$('cmWatchBtn').onclick=()=>{if(!$('watchAdBtn').disabled)openRewardedAd();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!adModalOpen())$('coinsModal').classList.add('hidden');});
 $('adCloseBtn').onclick=()=>{adCloseAndCancel();};
 $('adClaimBtn').onclick=async()=>{
   if(!adSession)return;
@@ -1144,12 +1170,23 @@ async function refreshAdStatus(){
     const {data,error}=await db.rpc('rewarded_ad_status');
     if(error)throw error;
     const r=Array.isArray(data)?data[0]:data;
-    const left=Number(r?.remaining??0),cd=Number(r?.cooldown_seconds??0);
+    const left=Number(r?.remaining??0),cd=Number(r?.cooldown_seconds??0),today=Number(r?.claims_today??0),max=Number(r?.daily_limit??5)||5;
     if(left<=0)b.textContent='Daily limit reached · back tomorrow';
     else if(cd>0)b.textContent='Next ad in '+cd+'s';
     else b.textContent='Watch ad · +20 coins ('+left+' left today)';
     b.disabled=adBusy||left<=0||cd>0||adModalOpen();
-  }catch(e){console.warn('Ad status',e);b.textContent='Rewarded ads unavailable';b.disabled=true;}
+    $('cmCount').textContent=today+'/'+max;
+    $('cmBar').style.width=Math.min(100,today/max*100)+'%';
+    $('cmStatus').textContent=left<=0?'Daily limit reached. Come back tomorrow for more coins.':cd>0?'Next ad available in '+cd+' seconds.':left+' ads left today.';
+    $('cmWatchBtn').textContent=left<=0?'Limit reached':cd>0?'Next ad in '+cd+'s':'▶ Watch ad · 15 sec';
+    $('cmWatchBtn').disabled=b.disabled;
+    if(cd>0&&!$('coinsModal').classList.contains('hidden'))setTimeout(()=>{refreshAdStatus().catch(()=>{});},(cd+1)*1000);
+  }catch(e){
+    console.warn('Ad status',e);
+    b.textContent='Rewarded ads unavailable';b.disabled=true;
+    $('cmStatus').textContent='Rewarded ads are unavailable right now.';
+    $('cmWatchBtn').disabled=true;
+  }
 }
 
 async function init(){
