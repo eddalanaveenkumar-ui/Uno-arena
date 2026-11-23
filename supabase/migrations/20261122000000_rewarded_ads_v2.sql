@@ -131,3 +131,11 @@ revoke all on function public.claim_rewarded_ad(uuid) from public;
 grant execute on function public.rewarded_ad_status() to authenticated;
 grant execute on function public.start_rewarded_ad() to authenticated;
 grant execute on function public.claim_rewarded_ad(uuid) to authenticated;
+
+-- Ask the Supabase API to reload its function list. Without this, new functions can
+-- return "Could not find the function ... in the schema cache" (PGRST202 / 404).
+notify pgrst, 'reload schema';
+
+-- Verify afterwards (should return 3 rows):
+-- select proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--  where n.nspname = 'public' and proname in ('start_rewarded_ad','claim_rewarded_ad','rewarded_ad_status');
