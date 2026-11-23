@@ -22,6 +22,26 @@ create table if not exists public.rewarded_ad_sessions (
 alter table public.rewarded_ad_sessions enable row level security;
 revoke all on public.rewarded_ad_sessions from anon, authenticated;
 
+-- The coin ledger has a check constraint on "reason". Add 'rewarded_ad' to it while
+-- keeping every reason that is already allowed. Safe to run more than once.
+do $$
+declare
+  def text;
+begin
+  select pg_get_constraintdef(c.oid) into def
+  from pg_constraint c
+  join pg_class t on t.oid = c.conrelid
+  where t.relname = 'coin_ledger' and c.conname = 'coin_ledger_reason_check';
+
+  if def is not null and def not like '%rewarded_ad%' then
+    execute 'alter table public.coin_ledger drop constraint coin_ledger_reason_check';
+    execute format(
+      'alter table public.coin_ledger add constraint coin_ledger_reason_check check ((%s) or reason = %L)',
+      substring(def from '^CHECK \((.*)\)$'), 'rewarded_ad'
+    );
+  end if;
+end $$;
+
 drop function if exists public.rewarded_ad_status();
 drop function if exists public.claim_rewarded_ad();
 
