@@ -330,14 +330,39 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 @media(max-width:520px){.ad-slot{zoom:.74}}
 @media(max-width:400px){.ad-slot{zoom:.62}}
 @media(max-height:500px){#gameScreen .ad-slot{display:none}}
+/* ===== LOADER, AUTH, LEADERBOARD CARD ===== */
+.app-loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(circle at 50% 30%,#1e2a40,#101522 70%);color:var(--muted);font-weight:700;letter-spacing:.5px}
+.app-loader .spinner{width:46px;height:46px;border-radius:50%;border:4px solid #ffffff22;border-top-color:var(--gold);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-card{max-width:440px}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 12px}
+.auth-tabs button{padding:11px;border-radius:12px;background:#121a29;color:var(--muted);border:1px solid var(--line);font-weight:850}
+.auth-tabs button.active{color:#fff;border-color:var(--gold);background:#3a3426}
+#authForm{display:grid;gap:10px;text-align:left}
+.lb-card{max-width:520px;margin:18px auto 0;padding:18px 20px;background:linear-gradient(160deg,#1e2941,#141b2a);border:1px solid var(--line);border-radius:22px;text-align:left}
 </style>
 
 </head>
 <body>
+<div id="appLoader" class="app-loader" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><div>Loading UNO Arena…</div></div>
 <header><div class="brand"><div class="brand-mark">U</div>UNO <span>ARENA</span></div><div class="header-right profile-header"><span class="coin-pill" id="headerCoins">… 🪙</span><button type="button" class="profile-open" id="profileOpenBtn">Profile</button></div></header>
 <noscript><p>UNO Arena is a free online UNO card game. Enable JavaScript to play against bots or with friends in real-time multiplayer.</p></noscript>
 <main>
-<section id="lobbyScreen" class="screen">
+<section id="authScreen" class="screen hidden">
+ <div class="home auth-card">
+  <div class="home-hero"><div class="hero-cards" aria-hidden="true"><div class="card red"><span class="face">7</span></div><div class="card yellow"><span class="face">⊘</span></div><div class="card blue"><span class="face">+2</span></div></div></div>
+  <h1 class="home-title">UNO <span>ARENA</span><span class="home-title-sub">Log in · Sign up · Play</span></h1>
+  <div class="auth-tabs"><button type="button" id="authTabLogin" class="active">Log in</button><button type="button" id="authTabSignup">Sign up</button></div>
+  <form id="authForm">
+   <input class="profile-input" id="authEmail" type="email" autocomplete="email" placeholder="Email address" required>
+   <input class="profile-input" id="authPassword" type="password" autocomplete="current-password" placeholder="Password (8+ characters)" minlength="8" required>
+   <button type="submit" class="primary" id="authSubmitBtn" style="width:100%">Log in</button>
+  </form>
+  <div id="authMsg" class="profile-muted" style="margin-top:10px;min-height:20px"></div>
+  <button type="button" class="secondary" id="authGuestBtn" style="width:100%;margin-top:10px">Continue as guest</button>
+ </div>
+</section>
+<section id="lobbyScreen" class="screen hidden">
  <div class="lobby home">
   <div class="home-hero">
    <div class="hero-cards" aria-hidden="true"><div class="card red"><span class="face">7</span></div><div class="card yellow"><span class="face">⊘</span></div><div class="card blue"><span class="face">+2</span></div></div>
@@ -400,6 +425,7 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
    <button type="button" class="close-rules" id="closeRulesBtn" aria-label="Close how to play">Got it</button>
   </div>
  </div>
+<div class="lb-card"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="lobbyLeaderboard" class="profile-muted">Loading rankings…</div></div>
 <div class="ad-slot ad-lobby" role="complementary" aria-label="Advertisement">
 <span class="ad-label">Advertisement</span>
 <script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
@@ -419,8 +445,8 @@ main{flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;padding:
 <button type="button" class="secondary profile-back" id="profileBackBtn">← Back to lobby</button><h1 class="home-title" style="text-align:left;margin:8px 0">Player <span>Profile</span></h1>
 <div class="profile-hero"><div style="display:flex;align-items:center;gap:14px"><div id="profileAvatar" style="font-size:38px;background:#27364b;border-radius:16px;padding:10px">😎</div><div style="min-width:0"><div id="profileDisplayName" style="font-size:20px;font-weight:900">Loading player…</div><div id="profilePlayerId" class="profile-muted">Connecting account</div><div id="profileRank" style="margin-top:7px;color:#f7d36b;font-weight:850">Rank —</div></div></div><div style="display:flex;align-items:end;justify-content:space-between;margin-top:20px"><div><div class="profile-muted">Coin wallet</div><div id="profileBalance" style="font-size:34px;font-weight:950;color:#78e1ad">— 🪙</div></div><div class="profile-muted" id="profileLevel">Level —</div></div></div>
 <div class="profile-stats"><div class="profile-stat"><small>Matches played</small><strong id="statMatches">0</strong></div><div class="profile-stat"><small>Wins</small><strong id="statWins">0</strong></div><div class="profile-stat"><small>Losses</small><strong id="statLosses">0</strong></div><div class="profile-stat"><small>Win rate</small><strong id="statWinRate">0%</strong></div><div class="profile-stat"><small>Current streak</small><strong id="statCurrentStreak">0</strong></div><div class="profile-stat"><small>Best streak</small><strong id="statBestStreak">0</strong></div></div>
-<div class="profile-section"><h3 style="margin:0 0 8px">Account</h3><label class="profile-muted" for="profileNameInput">Display name</label><input class="profile-input" id="profileNameInput" maxlength="16" placeholder="Your player name"><button type="button" class="secondary" id="saveProfileBtn" style="width:100%">Save profile</button><div id="profileMessage" class="profile-muted" style="margin-top:8px">Guest account is saved on this device. Add an email and password to recover it on another device.</div><div id="upgradeFields"><input class="profile-input" id="upgradeEmail" type="email" autocomplete="email" placeholder="Email address"><input class="profile-input" id="upgradePassword" type="password" autocomplete="new-password" placeholder="Create password (8+ characters)"><button type="button" class="primary" id="upgradeAccountBtn" style="width:100%">Secure my account</button></div></div>
-<div class="profile-section"><h3 style="margin:0 0 8px">Match history</h3><div id="matchHistory" class="profile-muted">Loading matches…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Coin activity</h3><div id="coinHistory" class="profile-muted">Loading transactions…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="profileLeaderboard" class="profile-muted">Loading rankings…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Earn coins</h3><p class="profile-muted">Watch a verified rewarded ad to earn 50 virtual coins. No cash value, purchases or withdrawals.</p><button type="button" class="secondary" id="watchAdBtn" style="width:100%" disabled>Rewarded ads coming soon</button></div>
+<div class="profile-section"><h3 style="margin:0 0 8px">Account</h3><label class="profile-muted" for="profileNameInput">Display name</label><input class="profile-input" id="profileNameInput" maxlength="16" placeholder="Your player name"><button type="button" class="secondary" id="saveProfileBtn" style="width:100%">Save profile</button><button type="button" class="secondary" id="signOutBtn" style="width:100%;margin-bottom:10px">Sign out</button><div id="profileMessage" class="profile-muted" style="margin-top:8px">Guest account is saved on this device. Add an email and password to recover it on another device.</div><div id="upgradeFields"><input class="profile-input" id="upgradeEmail" type="email" autocomplete="email" placeholder="Email address"><input class="profile-input" id="upgradePassword" type="password" autocomplete="new-password" placeholder="Create password (8+ characters)"><button type="button" class="primary" id="upgradeAccountBtn" style="width:100%">Secure my account</button></div></div>
+<div class="profile-section"><h3 style="margin:0 0 8px">Match history</h3><div id="matchHistory" class="profile-muted">Loading matches…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Coin activity</h3><div id="coinHistory" class="profile-muted">Loading transactions…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Leaderboard</h3><div id="profileLeaderboard" class="profile-muted">Loading rankings…</div></div><div class="profile-section"><h3 style="margin:0 0 8px">Earn coins</h3><p class="profile-muted">Watch a rewarded ad to earn 20 coins. Up to 5 ads per day. Virtual coins only, no cash value.</p><button type="button" class="secondary" id="watchAdBtn" style="width:100%" disabled>Checking ad availability…</button><div id="rewardAdBox" class="hidden profile-muted" style="margin-top:10px;text-align:center">Rewarded ad playing · <span id="rewardAdCount">15</span>s</div></div>
 </div><div class="ad-slot ad-profile" role="complementary" aria-label="Advertisement">
 <span class="ad-label">Advertisement</span>
 <script data-cfasync="false" src="https://bauval.org/14/508049f5a158e2087396c1ec53a2a9c2"></script>
@@ -928,7 +954,10 @@ document.documentElement.dataset.gameReady='true';
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5af6c51ce7e8019',t:'MTc5NDc1Nzk0Nw=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5af6c51ce7e8019',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>
 (function(){
 const URL='https://qobptakyzvqptweubrfi.supabase.co',KEY='sb_publishable_FIBuBRbtv8uxCJ-fqEAgag_RAbobtmT';
-const $=id=>document.getElementById(id);if(!window.supabase?.createClient)return;
+const bootAt=Date.now();
+const $=id=>document.getElementById(id);
+function hideLoader(){const wait=Math.max(0,700-(Date.now()-bootAt));setTimeout(()=>{const l=$('appLoader');if(l)l.classList.add('hidden');},wait);}
+if(!window.supabase?.createClient){hideLoader();return;}
 const db=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let user=null,profile=null;
 window.unoArenaGetSession=async()=>{let r=await db.auth.getSession();if(!r.data.session){const x=await db.auth.signInAnonymously();if(x.error)throw x.error;r={data:{session:x.data.session}};}user=r.data.session.user;return r.data.session;};
@@ -943,14 +972,107 @@ if(p.error||w.error)throw p.error||w.error;profile=p.data;const bal=Number(w.dat
 $('headerCoins').textContent=bal.toLocaleString()+' 🪙';$('profileAvatar').textContent=profile.avatar||'😎';$('profileDisplayName').textContent=profile.display_name||profile.username;$('profilePlayerId').textContent='ID: '+user.id.slice(0,8).toUpperCase()+(user.is_anonymous?' · Guest':' · Account secured');$('profileRank').textContent=rankName(rank);$('profileBalance').textContent=bal.toLocaleString()+' 🪙';$('profileLevel').textContent='Max entry tier '+([20,40,80,160,320,640,1280,2560,5120,10240,20480,40960,50000].filter(x=>x<=bal).length||1);$('statMatches').textContent=profile.matches_played;$('statWins').textContent=profile.wins;$('statLosses').textContent=profile.losses;$('statWinRate').textContent=(profile.matches_played?(profile.wins/profile.matches_played*100).toFixed(1):'0')+'%';$('statCurrentStreak').textContent=profile.current_streak;$('statBestStreak').textContent=profile.best_streak;$('profileNameInput').value=profile.display_name||'';$('nameTileVal').textContent=profile.display_name||'You';$('playerName').value=profile.display_name||'You';
 $('matchHistory').innerHTML=m.error?'Match history unavailable':(m.data||[]).length?m.data.map(x=>'<div class="profile-row"><span>'+String(x.game_matches?.status||'match').toUpperCase()+' · '+Number(x.entry_paid).toLocaleString()+' entry<br><small class="profile-muted">'+(x.game_matches?.completed_at?new Date(x.game_matches.completed_at).toLocaleString():'In progress')+'</small></span><strong>'+(x.payout?('+'+Number(x.payout).toLocaleString()):'—')+' 🪙<br><small class="profile-muted">Place '+(x.finish_position||'—')+'</small></strong></div>').join(''):'No matches played yet.';$('coinHistory').innerHTML=l.data?.length?l.data.map(x=>'<div class="profile-row"><span>'+x.reason.replaceAll('_',' ')+'<br><small class="profile-muted">'+new Date(x.created_at).toLocaleString()+'</small></span><strong style="color:'+(x.amount>0?'#78e1ad':'#ff9aa5')+'">'+(x.amount>0?'+':'')+Number(x.amount).toLocaleString()+' · '+Number(x.balance_after).toLocaleString()+'</strong></div>').join(''):'No coin transactions yet.';
 const {data:leaders,error}=await db.from('leaderboard').select('username,display_name,balance,rank').order('balance',{ascending:false}).limit(10);$('profileLeaderboard').innerHTML=error?'Leaderboard unavailable':(leaders||[]).map((x,i)=>'<div class="profile-row"><span>#'+(i+1)+' '+(x.display_name||x.username)+'<br><small class="profile-muted">'+rankName(x.rank)+'</small></span><strong>'+Number(x.balance).toLocaleString()+' 🪙</strong></div>').join('')||'No ranked players yet.';
+$('lobbyLeaderboard').innerHTML=$('profileLeaderboard').innerHTML;refreshAdStatus().catch(console.warn);
 $('upgradeFields').style.display=user.is_anonymous?'block':'none';if(!user.is_anonymous)msg('Your account can be recovered with your sign-in details.');
 }
-async function init(){try{let {data:{session}}=await db.auth.getSession();if(!session){const r=await db.auth.signInAnonymously();if(r.error)throw r.error;session=r.data.session;}user=session.user;await load();}catch(e){console.error('Account init',e);$('headerCoins').textContent='Wallet offline';msg('Account setup failed: '+e.message+'. Enable Anonymous Sign-ins in Supabase Auth settings.',true);}}
 $('profileOpenBtn').onclick=async()=>{document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$('profileScreen').classList.remove('hidden');try{await load();}catch(e){msg(e.message,true);}};
 $('profileBackBtn').onclick=()=>{document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$('lobbyScreen').classList.remove('hidden');};
 $('saveProfileBtn').onclick=async()=>{try{const name=$('profileNameInput').value.trim().slice(0,16);if(name.length<2)throw Error('Name must be at least 2 characters');const {error}=await db.from('player_profiles').update({display_name:name}).eq('id',user.id);if(error)throw error;await load();msg('Profile updated.');}catch(e){msg(e.message,true);}};
 $('upgradeAccountBtn').onclick=async()=>{try{const email=$('upgradeEmail').value.trim(),password=$('upgradePassword').value;if(!email||password.length<8)throw Error('Enter a valid email and password of at least 8 characters.');const {error}=await db.auth.updateUser({email,password});if(error)throw error;msg('Account upgrade started. Confirm your email if requested. Your guest profile and coins remain linked.');await load();}catch(e){msg(e.message,true);}};
-db.auth.onAuthStateChange((_event,session)=>{if(session){user=session.user;load().catch(console.warn);}});init();
+
+function showAuth(){document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));$('authScreen').classList.remove('hidden');}
+function showLobby(){document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));$('lobbyScreen').classList.remove('hidden');}
+let authMode='login',adBusy=false;
+function authErr(t,bad=true){$('authMsg').textContent=t;$('authMsg').style.color=bad?'#ff8a95':'#9eb0c8';}
+function setAuthMode(m){authMode=m;$('authTabLogin').classList.toggle('active',m==='login');$('authTabSignup').classList.toggle('active',m==='signup');$('authSubmitBtn').textContent=m==='login'?'Log in':'Create account';$('authPassword').setAttribute('autocomplete',m==='login'?'current-password':'new-password');authErr('',false);}
+$('authTabLogin').onclick=()=>setAuthMode('login');
+$('authTabSignup').onclick=()=>setAuthMode('signup');
+async function enterApp(session){user=session.user;showLobby();try{await load();}catch(e){console.warn(e);$('headerCoins').textContent='Wallet offline';msg('Account loaded, but wallet data failed: '+e.message,true);}}
+$('authForm').onsubmit=async e=>{
+  e.preventDefault();
+  const email=$('authEmail').value.trim(),password=$('authPassword').value;
+  if(!email||password.length<8){authErr('Enter a valid email and a password of at least 8 characters.');return;}
+  const btn=$('authSubmitBtn');btn.disabled=true;
+  try{
+    if(authMode==='login'){
+      const {data,error}=await db.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      await enterApp(data.session);
+    }else{
+      const {data:{session:cur}}=await db.auth.getSession();
+      if(cur&&cur.user.is_anonymous){
+        // Guest upgrade: keeps the existing wallet and coins
+        const {error}=await db.auth.updateUser({email,password});
+        if(error)throw error;
+        await enterApp(cur);
+      }else{
+        const {data,error}=await db.auth.signUp({email,password});
+        if(error)throw error;
+        if(data.session){await enterApp(data.session);}
+        else{authErr('Account created. Check your email to confirm it, then log in.',false);setAuthMode('login');authErr('Account created. Check your email to confirm it, then log in.',false);}
+      }
+    }
+  }catch(err){authErr(err.message||'Something went wrong. Please try again.');}
+  finally{btn.disabled=false;}
+};
+$('authGuestBtn').onclick=async()=>{
+  const b=$('authGuestBtn');b.disabled=true;
+  try{const {data,error}=await db.auth.signInAnonymously();if(error)throw error;await enterApp(data.session);}
+  catch(err){authErr(err.message||'Guest sign-in failed.');}
+  finally{b.disabled=false;}
+};
+$('signOutBtn').onclick=async()=>{
+  if(user?.is_anonymous&&!confirm('You are playing as a guest. Signing out on this device may make your coins unreachable unless you secured your account. Sign out anyway?'))return;
+  await db.auth.signOut();user=null;showAuth();
+};
+db.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT'){user=null;return;}
+  if(session){user=session.user;load().catch(console.warn);}
+});
+
+// PLACEHOLDER for the rewarded-ad network. Replace the body with the network's SDK and
+// resolve(true) only when the network reports the ad was fully watched.
+function playRewardedAd(seconds){
+  return new Promise(resolve=>{
+    let left=seconds;$('rewardAdCount').textContent=left;
+    const t=setInterval(()=>{left--;$('rewardAdCount').textContent=Math.max(left,0);if(left<=0){clearInterval(t);resolve(true);}},1000);
+  });
+}
+async function refreshAdStatus(){
+  const b=$('watchAdBtn');
+  try{
+    const {data,error}=await db.rpc('rewarded_ad_status');
+    if(error)throw error;
+    const r=Array.isArray(data)?data[0]:data;
+    const left=Number(r?.remaining??0);
+    b.textContent=left>0?'Watch ad · +20 coins ('+left+' left today)':'Daily limit reached · back tomorrow';
+    b.disabled=adBusy||left<=0;
+  }catch(e){console.warn('Ad status',e);b.textContent='Rewarded ads unavailable';b.disabled=true;}
+}
+$('watchAdBtn').onclick=async()=>{
+  if(adBusy)return;adBusy=true;
+  const b=$('watchAdBtn');b.disabled=true;$('rewardAdBox').classList.remove('hidden');
+  try{
+    const shown=await playRewardedAd(15);
+    if(!shown)throw Error('The ad did not finish. No coins were added.');
+    const {data,error}=await db.rpc('claim_rewarded_ad');
+    if(error)throw error;
+    msg('+20 coins added! New balance: '+Number(data).toLocaleString()+' 🪙');
+    await load();
+  }catch(e){msg(/daily_limit_reached/.test(e.message)?'Daily limit reached: 5 rewarded ads per day.':e.message,true);}
+  finally{adBusy=false;$('rewardAdBox').classList.add('hidden');await refreshAdStatus();}
+};
+
+async function init(){
+  try{
+    const {data:{session}}=await db.auth.getSession();
+    if(!session){showAuth();return;}
+    showLobby();user=session.user;
+    try{await load();}catch(e){console.error('Account load',e);$('headerCoins').textContent='Wallet offline';msg('Account setup failed: '+e.message,true);}
+  }catch(e){console.error('Session check',e);showAuth();authErr('Could not check your session: '+e.message);}
+  finally{hideLoader();}
+}
+init();
 })();
 </script>
 </body>
