@@ -994,6 +994,18 @@ document.documentElement.dataset.gameReady='true';
 (function(){
 const URL='https://qobptakyzvqptweubrfi.supabase.co',KEY='sb_publishable_FIBuBRbtv8uxCJ-fqEAgag_RAbobtmT';
 const bootAt=Date.now();
+// Page elements that belong to the app. Anything else an ad adds to <body> is removed.
+const knownBodyNodes=new Set(Array.from(document.body.children));
+function sweepForeignBodyNodes(){
+  Array.from(document.body.children).forEach(n=>{if(!knownBodyNodes.has(n))n.remove();});
+}
+new MutationObserver(list=>{
+  // While the reward window is open, adCleanup handles it; otherwise remove unknown nodes now
+  if(window.adModalOpenFlag)return;
+  for(const m of list)for(const n of m.addedNodes){
+    if(n.nodeType===1&&n.parentNode===document.body&&!knownBodyNodes.has(n))n.remove();
+  }
+}).observe(document.body,{childList:true});
 const $=id=>document.getElementById(id);
 function hideLoader(){const wait=Math.max(0,700-(Date.now()-bootAt));setTimeout(()=>{const l=$('appLoader');if(l)l.classList.add('hidden');},wait);}
 if(!window.supabase?.createClient){hideLoader();return;}
@@ -1112,15 +1124,15 @@ function adGuardOff(){
   window.removeEventListener('pointerdown',adClickGuard,true);
 }
 function adCleanup(){
-  adGuardOff();
+  adGuardOff();window.adModalOpenFlag=false;
   clearInterval(adTimer);adTimer=null;
   if(adObserver){adObserver.disconnect();adObserver=null;}
   // Remove the injected Social Bar script and floating ad nodes
   if(adScript){adScript.remove();adScript=null;}
-  adAddedNodes.forEach(n=>{if(n.isConnected&&!n.id&&n.tagName!=='MAIN'&&n.tagName!=='HEADER'&&n.tagName!=='SCRIPT'&&n.tagName!=='STYLE')n.remove();});
   adAddedNodes=[];
-  // Also remove any Social Bar iframes that ended up outside the modal
-  document.querySelectorAll('body > iframe').forEach(f=>{if(!f.id)f.remove();});
+  sweepForeignBodyNodes();
+  // The ad can finish loading a little after close; sweep again shortly after
+  [500,2000,5000].forEach(ms=>setTimeout(sweepForeignBodyNodes,ms));
   adSession=null;adLoaded=false;adLeft=AD_WATCH_SECONDS;adPaused=false;
   $('adModal').classList.add('hidden');
   $('adClaimBtn').disabled=true;
@@ -1139,6 +1151,7 @@ async function openRewardedAd(){
     if(error)throw error;
     adSession=data;
     $('adModal').classList.remove('hidden');
+    window.adModalOpenFlag=true;
     adGuardOn();
     adLeft=AD_WATCH_SECONDS;adPaused=document.hidden;adLoaded=false;
     $('adModalCount').textContent=adLeft;
